@@ -1,0 +1,110 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Backgrounds 示例组件
+ * 展示不同的背景样式
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+import '@xyflow/vanilla/dist/style.css';
+import { XYFlow } from '@xyflow/vanilla';
+import { BackgroundVariant } from '@xyflow/vanilla';
+import type { Node } from '@xyflow/vanilla';
+
+const initialNodes: Node[] = [
+  {
+    id: '1',
+    data: { label: 'Node 1' },
+    position: { x: 50, y: 50 },
+  },
+];
+
+const configs = [
+  { id: 'flow-a', variant: BackgroundVariant.Dots },
+  { id: 'flow-b', variant: BackgroundVariant.Lines, gap: [50, 50] },
+  { id: 'flow-c', variant: BackgroundVariant.Cross, gap: [100, 50] },
+];
+
+@autoRegister({ tagName: 'backgrounds-example' })
+export class BackgroundsExample extends LightComponent {
+  private flows: XYFlow[] = [];
+  private flowRefs: (HTMLElement | null)[] = [null, null, null];
+  private initialized = false;
+
+  connectedCallback() {
+    super.connectedCallback?.();
+    if (!this.initialized) {
+      this.initialized = true;
+      requestAnimationFrame(() => {
+        this.initFlows();
+      });
+    }
+  }
+
+  disconnectedCallback() {
+    this.flows.forEach((flow) => flow.destroy());
+    this.flows = [];
+    this.flowRefs = [null, null, null];
+    this.initialized = false;
+    super.disconnectedCallback?.();
+  }
+
+  private initFlows() {
+    // 清理旧的实例
+    if (this.flows.length > 0) {
+      this.flows.forEach((flow) => flow.destroy());
+      this.flows = [];
+    }
+
+    // 为每个容器创建 XYFlow 实例
+    configs.forEach((config, index) => {
+      const container = this.flowRefs[index];
+      if (!container) return;
+
+      const flow = new XYFlow({
+        container,
+        nodes: initialNodes,
+        edges: [],
+      });
+
+      this.flows.push(flow);
+    });
+  }
+
+  private setFlowRef(index: number) {
+    return (element: HTMLElement | null) => {
+      this.flowRefs[index] = element;
+      if (element && this.initialized && !this.flows[index]) {
+        requestAnimationFrame(() => {
+          this.initFlows();
+        });
+      }
+    };
+  }
+
+  render() {
+    return (
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px; height: 100%;">
+        <div
+          ref={this.setFlowRef(0)}
+          id={configs[0].id}
+          style="width: 100%; height: 100%; border: 1px solid #ddd; border-radius: 4px; position: relative;"
+        >
+          <xyflow-background variant={configs[0].variant}></xyflow-background>
+        </div>
+        <div
+          ref={this.setFlowRef(1)}
+          id={configs[1].id}
+          style="width: 100%; height: 100%; border: 1px solid #ddd; border-radius: 4px; position: relative;"
+        >
+          <xyflow-background variant={configs[1].variant} gap={JSON.stringify(configs[1].gap)}></xyflow-background>
+        </div>
+        <div
+          ref={this.setFlowRef(2)}
+          id={configs[2].id}
+          style="width: 100%; height: 100%; border: 1px solid #ddd; border-radius: 4px; position: relative;"
+        >
+          <xyflow-background variant={configs[2].variant} gap={JSON.stringify(configs[2].gap)}></xyflow-background>
+        </div>
+      </div>
+    );
+  }
+}

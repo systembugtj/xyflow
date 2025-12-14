@@ -1,0 +1,74 @@
+/**
+ * App 样式
+ */
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0;
+  z-index: 1000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  max-width: 100%;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo:hover {
+  color: #3b82f6;
+}
+
+.example-select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.example-select:hover {
+  border-color: #9ca3af;
+}
+
+.example-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.router-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: #f8f9fa;
+}
+
+.error {
+  padding: 24px;
+  color: #dc2626;
+  text-align: center;
+}

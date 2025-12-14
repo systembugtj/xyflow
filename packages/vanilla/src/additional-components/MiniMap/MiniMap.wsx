@@ -1,0 +1,359 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * MiniMap 组件
+ * 完全按照 React 端设计实现
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { getInternalNodesBounds, getBoundsOfRects, XYMinimap } from '@xyflow/system';
+import type { XYMinimapInstance, PanelPosition, XYPosition, Rect } from '@xyflow/system';
+import { classcat } from '../../utils/web-components';
+import styles from '../../styles/base.css?inline';
+
+const defaultWidth = 200;
+const defaultHeight = 150;
+
+const filterHidden = (node: any) => !node.hidden;
+
+@autoRegister({ tagName: 'xyflow-minimap' })
+export default class MiniMap extends LightComponent {
+  private nodeStrokeColor?: string | ((node: any) => string);
+  private nodeColor?: string | ((node: any) => string);
+  @state private nodeClassName = '';
+  @state private nodeBorderRadius = 5;
+  @state private nodeStrokeWidth: number = 2;
+  @state private bgColor: string = '';
+  @state private maskColor: string = '';
+  @state private maskStrokeColor: string = '';
+  @state private maskStrokeWidth: number = 0;
+  @state private position: PanelPosition = 'bottom-right';
+  @state private pannable = false;
+  @state private zoomable = false;
+  @state private inversePan = false;
+  @state private zoomStep = 1;
+  @state private offsetScale = 5;
+  @state private ariaLabel: string | null = null;
+
+  private svgRef: SVGSVGElement | null = null;
+  private minimapInstance: XYMinimapInstance | null = null;
+  private viewScale = 0;
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-minimap',
+    });
+  }
+
+  static get observedAttributes() {
+    return [
+      'node-stroke-color',
+      'node-color',
+      'node-class-name',
+      'node-border-radius',
+      'node-stroke-width',
+      'bg-color',
+      'mask-color',
+      'mask-stroke-color',
+      'mask-stroke-width',
+      'position',
+      'pannable',
+      'zoomable',
+      'inverse-pan',
+      'zoom-step',
+      'offset-scale',
+      'aria-label',
+      'class',
+      'style',
+    ];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'node-stroke-color':
+        this.nodeStrokeColor = newValue || undefined;
+        break;
+      case 'node-color':
+        this.nodeColor = newValue || undefined;
+        break;
+      case 'node-class-name':
+        this.nodeClassName = newValue || '';
+        break;
+      case 'node-border-radius':
+        this.nodeBorderRadius = parseFloat(newValue) || 5;
+        break;
+      case 'node-stroke-width':
+        this.nodeStrokeWidth = newValue ? parseFloat(newValue) : undefined;
+        break;
+      case 'bg-color':
+        this.bgColor = newValue || undefined;
+        break;
+      case 'mask-color':
+        this.maskColor = newValue || undefined;
+        break;
+      case 'mask-stroke-color':
+        this.maskStrokeColor = newValue || undefined;
+        break;
+      case 'mask-stroke-width':
+        this.maskStrokeWidth = newValue ? parseFloat(newValue) : undefined;
+        break;
+      case 'position':
+        this.position = (newValue as PanelPosition) || 'bottom-right';
+        break;
+      case 'pannable':
+        this.pannable = newValue !== 'false';
+        break;
+      case 'zoomable':
+        this.zoomable = newValue !== 'false';
+        break;
+      case 'inverse-pan':
+        this.inversePan = newValue !== 'false';
+        break;
+      case 'zoom-step':
+        this.zoomStep = parseFloat(newValue) || 1;
+        break;
+      case 'offset-scale':
+        this.offsetScale = parseFloat(newValue) || 5;
+        break;
+      case 'aria-label':
+        this.ariaLabel = newValue || null;
+        break;
+    }
+  }
+
+  onConnected() {
+    // 延迟初始化，确保 DOM 已渲染
+    requestAnimationFrame(() => {
+      this.initMiniMap();
+    });
+  }
+
+  onDisconnected() {
+    if (this.minimapInstance) {
+      this.minimapInstance.destroy?.();
+      this.minimapInstance = null;
+    }
+  }
+
+  /**
+   * 初始化 MiniMap 实例
+   */
+  private initMiniMap(): void {
+    if (!this.svgRef) return;
+
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return;
+
+    const flowState = flow.getState?.() || {};
+    const panZoom = flowState.panZoom;
+    if (!panZoom) return;
+
+    this.minimapInstance = XYMinimap({
+      domNode: this.svgRef,
+      panZoom,
+      getTransform: () => {
+        const viewport = flow.getViewport();
+        return [viewport.x, viewport.y, viewport.zoom];
+      },
+      getViewScale: () => this.viewScale,
+    });
+
+    this.updateMiniMap();
+  }
+
+  /**
+   * 更新 MiniMap 配置
+   */
+  private updateMiniMap(): void {
+    if (!this.minimapInstance) return;
+
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return;
+
+    const flowState = flow.getState?.() || {};
+    const translateExtent = flowState?.translateExtent || [
+      [-Infinity, -Infinity],
+      [Infinity, Infinity],
+    ];
+    const flowWidth = flowState.width || 0;
+    const flowHeight = flowState.height || 0;
+
+    this.minimapInstance.update({
+      translateExtent,
+      width: flowWidth,
+      height: flowHeight,
+      inversePan: this.inversePan,
+      pannable: this.pannable,
+      zoomStep: this.zoomStep,
+      zoomable: this.zoomable,
+    });
+  }
+
+  private getViewBB(): Rect {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) {
+      return { x: 0, y: 0, width: 0, height: 0 };
+    }
+
+    const viewport = flow.getViewport();
+    const flowState = flow.getState?.() || {};
+    const width = flowState.width || 0;
+    const height = flowState.height || 0;
+
+    return {
+      x: -viewport.x / viewport.zoom,
+      y: -viewport.y / viewport.zoom,
+      width: width / viewport.zoom,
+      height: height / viewport.zoom,
+    };
+  }
+
+  private getBoundingRect(): Rect {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) {
+      return this.getViewBB();
+    }
+
+    const flowState = flow.getState?.() || {};
+    const nodeLookup = flowState?.nodeLookup || new Map();
+    const viewBB = this.getViewBB();
+
+    if (nodeLookup.size > 0) {
+      const nodesBounds = getInternalNodesBounds(nodeLookup, { filter: filterHidden });
+      return getBoundsOfRects(nodesBounds, viewBB);
+    }
+
+    return viewBB;
+  }
+
+  /**
+   * 处理 SVG 点击事件
+   */
+  private handleSvgClick(event: MouseEvent): void {
+    if (!this.minimapInstance) return;
+    const [x, y] = this.minimapInstance.pointer?.(event) || [0, 0];
+    this.dispatchEvent(
+      new CustomEvent('minimap-click', {
+        detail: { x, y },
+        bubbles: true,
+      })
+    );
+  }
+
+  /**
+   * 从 style 属性中提取宽度
+   */
+  private extractWidthFromStyle(styleAttr: string): number {
+    const widthMatch = styleAttr.match(/width:\s*(\d+)/);
+    return widthMatch ? parseInt(widthMatch[1], 10) : defaultWidth;
+  }
+
+  /**
+   * 从 style 属性中提取高度
+   */
+  private extractHeightFromStyle(styleAttr: string): number {
+    const heightMatch = styleAttr.match(/height:\s*(\d+)/);
+    return heightMatch ? parseInt(heightMatch[1], 10) : defaultHeight;
+  }
+
+  /**
+   * 构建 SVG 样式对象
+   */
+  private buildSvgStyle(viewScale: number): Record<string, string> {
+    return {
+      '--xy-minimap-background-color-props': typeof this.bgColor === 'string' ? this.bgColor : '',
+      '--xy-minimap-mask-background-color-props': typeof this.maskColor === 'string' ? this.maskColor : '',
+      '--xy-minimap-mask-stroke-color-props': typeof this.maskStrokeColor === 'string' ? this.maskStrokeColor : '',
+      '--xy-minimap-mask-stroke-width-props':
+        typeof this.maskStrokeWidth === 'number' ? String(this.maskStrokeWidth * viewScale) : '',
+      '--xy-minimap-node-background-color-props': typeof this.nodeColor === 'string' ? this.nodeColor : '',
+      '--xy-minimap-node-stroke-color-props': typeof this.nodeStrokeColor === 'string' ? this.nodeStrokeColor : '',
+      '--xy-minimap-node-stroke-width-props':
+        typeof this.nodeStrokeWidth === 'number' ? String(this.nodeStrokeWidth) : '',
+    };
+  }
+
+  /**
+   * 计算视图参数
+   */
+  private calculateViewParams(boundingRect: Rect, elementWidth: number, elementHeight: number) {
+    const scaledWidth = boundingRect.width / elementWidth;
+    const scaledHeight = boundingRect.height / elementHeight;
+    const viewScale = Math.max(scaledWidth, scaledHeight);
+    this.viewScale = viewScale;
+
+    const viewWidth = viewScale * elementWidth;
+    const viewHeight = viewScale * elementHeight;
+    const offset = this.offsetScale * viewScale;
+    const x = boundingRect.x - (viewWidth - boundingRect.width) / 2 - offset;
+    const y = boundingRect.y - (viewHeight - boundingRect.height) / 2 - offset;
+    const width = viewWidth + offset * 2;
+    const height = viewHeight + offset * 2;
+
+    return { viewScale, x, y, width, height, offset };
+  }
+
+  render() {
+    const boundingRect = this.getBoundingRect();
+    const viewBB = this.getViewBB();
+    const styleAttr = this.getAttribute('style') || '';
+    const elementWidth = this.extractWidthFromStyle(styleAttr);
+    const elementHeight = this.extractHeightFromStyle(styleAttr);
+
+    const { x, y, width, height, offset } = this.calculateViewParams(boundingRect, elementWidth, elementHeight);
+
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    const flowState = flow?.getState?.() || {};
+    const rfId = flowState?.rfId || '';
+    const labelledBy = `xyflow-minimap-desc-${rfId}`;
+    const _ariaLabel = this.ariaLabel || 'Mini Map';
+
+    const svgStyle = this.buildSvgStyle(this.viewScale);
+
+    return (
+      <xyflow-panel
+        position={this.position}
+        class={classcat('xyflow__minimap', this.getAttribute('class') || '')}
+        style={svgStyle}
+        data-testid="rf__minimap"
+      >
+        <svg
+          ref={(el) => {
+            this.svgRef = el;
+            if (el && !this.minimapInstance) {
+              // 延迟初始化，确保 DOM 已渲染
+              setTimeout(() => this.initMiniMap(), 0);
+            }
+          }}
+          width={elementWidth}
+          height={elementHeight}
+          viewBox={`${x} ${y} ${width} ${height}`}
+          class="xyflow__minimap-svg"
+          role="img"
+          aria-labelledby={labelledBy}
+          onclick={(e) => this.handleSvgClick(e)}
+        >
+          {_ariaLabel && <title id={labelledBy}>{_ariaLabel}</title>}
+          <xyflow-minimap-nodes
+            node-color={typeof this.nodeColor === 'string' ? this.nodeColor : undefined}
+            node-stroke-color={typeof this.nodeStrokeColor === 'string' ? this.nodeStrokeColor : undefined}
+            node-class-name={typeof this.nodeClassName === 'string' ? this.nodeClassName : undefined}
+            node-border-radius={this.nodeBorderRadius.toString()}
+            node-stroke-width={this.nodeStrokeWidth?.toString()}
+          />
+          <path
+            class="xyflow__minimap-mask"
+            d={`M${x - offset},${y - offset}h${width + offset * 2}v${height + offset * 2}h${-width - offset * 2}z
+        M${viewBB.x},${viewBB.y}h${viewBB.width}v${viewBB.height}h${-viewBB.width}z`}
+            fillRule="evenodd"
+            pointerEvents="none"
+          />
+        </svg>
+      </xyflow-panel>
+    );
+  }
+}

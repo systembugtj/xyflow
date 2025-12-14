@@ -1,0 +1,170 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * XYFlow 主组件
+ * 使用 wsxjs 创建的 Web Component
+ * 使用 LightComponent 因为需要与外部 DOM 交互
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { XYFlowVanilla } from '../core/XYFlow';
+import type { XYFlowOptions, XYFlowInstance } from '../types';
+import type { Node, Edge } from '../types';
+import styles from '../styles/style.css?inline';
+
+@autoRegister({ tagName: 'xyflow-flow' })
+export default class XYFlow extends LightComponent {
+  // 响应式状态 - 用于渲染
+  @state private nodes: Node[] = [];
+  @state private edges: Edge[] = [];
+  @state private minZoom = 0.5;
+  @state private maxZoom = 2;
+  @state private panOnDrag = true;
+  @state private zoomOnScroll = true;
+  @state private zoomOnDoubleClick = true;
+  @state private nodesDraggable = true;
+  @state private nodesConnectable = true;
+  @state private elementsSelectable = true;
+
+  // 非响应式状态
+  private flowInstance: XYFlowInstance | null = null;
+  private container: HTMLElement | null = null;
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-flow',
+    });
+  }
+
+  static get observedAttributes() {
+    return [
+      'nodes',
+      'edges',
+      'min-zoom',
+      'max-zoom',
+      'pan-on-drag',
+      'zoom-on-scroll',
+      'zoom-on-double-click',
+      'nodes-draggable',
+      'nodes-connectable',
+      'elements-selectable',
+    ];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'nodes':
+        try {
+          const parsedNodes = JSON.parse(newValue || '[]');
+          this.nodes = Array.isArray(parsedNodes) ? parsedNodes : [];
+          if (this.flowInstance) {
+            this.flowInstance.setNodes(this.nodes);
+          }
+        } catch {
+          this.nodes = [];
+        }
+        break;
+      case 'edges':
+        try {
+          const parsedEdges = JSON.parse(newValue || '[]');
+          this.edges = Array.isArray(parsedEdges) ? parsedEdges : [];
+          if (this.flowInstance) {
+            this.flowInstance.setEdges(this.edges);
+          }
+        } catch {
+          this.edges = [];
+        }
+        break;
+      case 'min-zoom':
+        this.minZoom = parseFloat(newValue) || 0.5;
+        break;
+      case 'max-zoom':
+        this.maxZoom = parseFloat(newValue) || 2;
+        break;
+      case 'pan-on-drag':
+        this.panOnDrag = newValue !== 'false';
+        break;
+      case 'zoom-on-scroll':
+        this.zoomOnScroll = newValue !== 'false';
+        break;
+      case 'zoom-on-double-click':
+        this.zoomOnDoubleClick = newValue !== 'false';
+        break;
+      case 'nodes-draggable':
+        this.nodesDraggable = newValue !== 'false';
+        break;
+      case 'nodes-connectable':
+        this.nodesConnectable = newValue !== 'false';
+        break;
+      case 'elements-selectable':
+        this.elementsSelectable = newValue !== 'false';
+        break;
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback?.();
+    if (this.container) {
+      this.initFlow();
+    }
+  }
+
+  private setContainerRef(element: HTMLElement | null) {
+    this.container = element;
+    if (element && this.isConnected) {
+      this.initFlow();
+    }
+  }
+
+  private initFlow() {
+    if (!this.container) return;
+
+    // 创建 XYFlow 实例
+    const options: XYFlowOptions = {
+      container: this.container,
+      nodes: this.nodes,
+      edges: this.edges,
+      minZoom: this.minZoom,
+      maxZoom: this.maxZoom,
+      panOnDrag: this.panOnDrag,
+      zoomOnScroll: this.zoomOnScroll,
+      zoomOnDoubleClick: this.zoomOnDoubleClick,
+      nodesDraggable: this.nodesDraggable,
+      nodesConnectable: this.nodesConnectable,
+      elementsSelectable: this.elementsSelectable,
+    };
+
+    this.flowInstance = new XYFlowVanilla(options);
+
+    // 暴露实例到元素上，方便外部访问
+    (this as any).flow = this.flowInstance;
+
+    // 触发就绪事件
+    this.dispatchEvent(
+      new CustomEvent('xyflow-ready', {
+        detail: { flow: this.flowInstance },
+        bubbles: true,
+      })
+    );
+  }
+
+  disconnectedCallback() {
+    if (this.flowInstance) {
+      this.flowInstance.destroy();
+      this.flowInstance = null;
+    }
+    super.disconnectedCallback?.();
+  }
+
+  /**
+   * 获取 Flow 实例
+   */
+  getFlow(): XYFlowInstance | null {
+    return this.flowInstance;
+  }
+
+  render() {
+    return (
+      <div ref={(el) => this.setContainerRef(el)} class="xyflow__container" style="width: 100%; height: 100%;"></div>
+    );
+  }
+}

@@ -1,0 +1,40 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Header 导航组件
+ * 使用 wsx-link 进行路由导航
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+import routes from './routes';
+
+@autoRegister({ tagName: 'app-header' })
+export class Header extends LightComponent {
+  private handleSelectChange = (event: Event) => {
+    const select = event.target as HTMLSelectElement;
+    const path = select.value;
+    // 使用 wsx-router 的导航
+    const router = document.querySelector('wsx-router') as any;
+    if (router && router.navigate) {
+      router.navigate(path);
+    } else {
+      window.history.pushState({}, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
+
+  render() {
+    return (
+      <header class="app-header">
+        <div class="header-container">
+          <a class="logo" href="https://github.com/xyflow/xyflow" target="_blank" rel="noopener noreferrer">
+            XYFlow Vanilla
+          </a>
+          <select class="example-select" onchange={this.handleSelectChange} aria-label="select an example">
+            <option value={routes[0].path}>{routes[0].name}</option>
+            <option value={routes[1].path}>{routes[1].name}</option>
+            <option value={routes[2].path}>{routes[2].name}</option>
+          </select>
+        </div>
+      </header>
+    );
+  }
+}

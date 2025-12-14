@@ -1,0 +1,339 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Handle 组件
+ * 完全按照 React 端设计实现
+ * 使用 XYHandle.onPointerDown，支持所有连接状态
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import {
+  Position,
+  XYHandle,
+  getHostForElement,
+  isMouseEvent,
+  addEdge,
+  type HandleType,
+  type Connection,
+  ConnectionMode,
+  type ConnectionState,
+  type Optional,
+} from '@xyflow/system';
+import { classcat } from '../utils/web-components';
+import styles from '../styles/base.css?inline';
+
+@autoRegister({ tagName: 'xyflow-handle' })
+export default class Handle extends LightComponent {
+  @state private type: HandleType = 'source';
+  @state private position: Position = Position.Top;
+  @state private handleId: string | null = null;
+  // 注意：函数类型的属性不应该使用 @state
+  private isValidConnection?: (connection: Connection) => boolean;
+  @state private isConnectable = true;
+  @state private isConnectableStart = true;
+  @state private isConnectableEnd = true;
+  // 注意：函数类型的属性不应该使用 @state
+  private onConnect?: (connection: Connection) => void;
+
+  // 连接状态（从 flow 实例获取）
+  @state private connectingFrom = false;
+  @state private connectingTo = false;
+  @state private clickConnecting = false;
+  @state private isPossibleEndHandle = false;
+  @state private connectionInProcess = false;
+  @state private clickConnectionInProcess = false;
+  @state private valid = false;
+  @state private connectOnClick = false;
+  @state private noPanClassName = '';
+  @state private rfId: string | null = null;
+
+  constructor() {
+    super({
+      styles,
+    });
+  }
+
+  static get observedAttributes() {
+    return [
+      'type',
+      'position',
+      'id',
+      'is-connectable',
+      'is-connectable-start',
+      'is-connectable-end',
+      'connect-on-click',
+    ];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'type':
+        this.type = (newValue as HandleType) || 'source';
+        break;
+      case 'position':
+        this.position = (newValue as Position) || Position.Top;
+        break;
+      case 'id':
+        this.handleId = newValue || '';
+        break;
+      case 'is-connectable':
+        this.isConnectable = newValue !== 'false';
+        break;
+      case 'is-connectable-start':
+        this.isConnectableStart = newValue !== 'false';
+        break;
+      case 'is-connectable-end':
+        this.isConnectableEnd = newValue !== 'false';
+        break;
+      case 'connect-on-click':
+        this.connectOnClick = newValue !== 'false';
+        break;
+    }
+    this.updateConnectionState();
+  }
+
+  onConnected() {
+    this.updateFlowState();
+    this.updateConnectionState();
+
+    // 监听 flow 的连接状态变化
+    const flowElement = this.closest('xyflow-flow');
+    if (flowElement) {
+      flowElement.addEventListener('xyflow-connection-change', this.handleConnectionChange);
+    }
+  }
+
+  onDisconnected() {
+    const flowElement = this.closest('xyflow-flow');
+    if (flowElement) {
+      flowElement.removeEventListener('xyflow-connection-change', this.handleConnectionChange);
+    }
+  }
+
+  private updateFlowState = () => {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (flow) {
+      // 从 flow 获取状态
+      const flowState = flow.getState?.() || {};
+      this.connectOnClick = flowState.connectOnClick || false;
+      this.noPanClassName = flowState.noPanClassName || '';
+      this.rfId = flowState.rfId || null;
+    }
+  };
+
+  private handleConnectionChange = () => {
+    this.updateConnectionState();
+  };
+
+  private updateConnectionState = () => {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    const nodeId = this.getAttribute('data-nodeid');
+    const handleId = this.handleId || null;
+
+    if (!flow || !nodeId) {
+      return;
+    }
+
+    const connectionState = flow.getConnectionState?.() || {};
+    const { connectionClickStartHandle, connectionMode, connection } = connectionState;
+    const { fromHandle, toHandle, isValid } = connection || {};
+
+    const connectingTo = toHandle?.nodeId === nodeId && toHandle?.id === handleId && toHandle?.type === this.type;
+
+    this.connectingFrom =
+      fromHandle?.nodeId === nodeId && fromHandle?.id === handleId && fromHandle?.type === this.type;
+    this.connectingTo = connectingTo;
+    this.clickConnecting =
+      connectionClickStartHandle?.nodeId === nodeId &&
+      connectionClickStartHandle?.id === handleId &&
+      connectionClickStartHandle?.type === this.type;
+    this.isPossibleEndHandle =
+      connectionMode === ConnectionMode.Strict
+        ? fromHandle?.type !== this.type
+        : nodeId !== fromHandle?.nodeId || handleId !== fromHandle?.id;
+    this.connectionInProcess = !!fromHandle;
+    this.clickConnectionInProcess = !!connectionClickStartHandle;
+    this.valid = connectingTo && isValid;
+  };
+
+  private getFlowInstance() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    return flowElement?.flow || null;
+  }
+
+  private onConnectExtended = (params: Connection) => {
+    const flow = this.getFlowInstance();
+    if (!flow) return;
+
+    const flowState = flow.getState?.() || {};
+    const { defaultEdgeOptions, onConnect: onConnectAction, hasDefaultEdges } = flowState;
+
+    const edgeParams = {
+      ...defaultEdgeOptions,
+      ...params,
+    };
+
+    if (hasDefaultEdges) {
+      const { edges, setEdges } = flowState;
+      if (setEdges && edges) {
+        setEdges(addEdge(edgeParams, edges));
+      }
+    }
+
+    onConnectAction?.(edgeParams);
+    this.onConnect?.(edgeParams);
+  };
+
+  private onPointerDown = (event: MouseEvent | TouchEvent) => {
+    const nodeId = this.getAttribute('data-nodeid');
+    if (!nodeId) {
+      return;
+    }
+
+    const isMouseTriggered = isMouseEvent(event);
+
+    if (this.isConnectableStart && ((isMouseTriggered && (event as MouseEvent).button === 0) || !isMouseTriggered)) {
+      const flow = this.getFlowInstance();
+      if (!flow) return;
+
+      const flowState = flow.getflowState?.() || {};
+      const isTarget = this.type === 'target';
+
+      XYHandle.onPointerDown(event, {
+        handleDomNode: this,
+        autoPanOnConnect: flowState.autoPanOnConnect || false,
+        connectionMode: flowState.connectionMode || ConnectionMode.Loose,
+        connectionRadius: flowState.connectionRadius || 0,
+        domNode: flowState.domNode || null,
+        nodeLookup: flowState.nodeLookup || new Map(),
+        lib: flowState.lib || 'vanilla',
+        isTarget,
+        handleId: this.handleId || null,
+        nodeId,
+        flowId: flowState.rfId || null,
+        panBy: flowState.panBy || (() => {}),
+        cancelConnection: flowState.cancelConnection || (() => {}),
+        onConnectStart: flowState.onConnectStart,
+        onConnectEnd: flowState.onConnectEnd,
+        updateConnection: flowState.updateConnection || (() => {}),
+        onConnect: this.onConnectExtended,
+        isValidConnection: this.isValidConnection || flowState.isValidConnection,
+        getTransform: () => {
+          const viewport = flow.getViewport();
+          return [viewport.x, viewport.y, viewport.zoom];
+        },
+        getFromHandle: () => {
+          const connflowState = flow.getConnectionflowState?.() || {};
+          return connflowState.connection?.fromHandle || null;
+        },
+        autoPanSpeed: flowState.autoPanSpeed || 0.5,
+        dragThreshold: flowState.connectionDragThreshold || 1,
+      });
+    }
+  };
+
+  private onClick = (event: MouseEvent) => {
+    const nodeId = this.getAttribute('data-nodeid');
+    const flow = this.getFlowInstance();
+    if (!flow || !nodeId || (!this.connectionInProcess && !this.isConnectableStart)) {
+      return;
+    }
+
+    const flowState = flow.getState?.() || {};
+    const {
+      onClickConnectStart,
+      onClickConnectEnd,
+      connectionClickStartHandle,
+      connectionMode,
+      isValidConnection: isValidConnectionStore,
+      lib,
+      rfId: flowId,
+      nodeLookup,
+      connection: connectionState,
+    } = flowState;
+
+    if (!connectionClickStartHandle) {
+      onClickConnectStart?.(event, { nodeId, handleId: this.handleId || null, handleType: this.type });
+      flow.setState?.({ connectionClickStartHandle: { nodeId, type: this.type, id: this.handleId || null } });
+      return;
+    }
+
+    const doc = getHostForElement(event.target as Element);
+    const isValidConnectionHandler = this.isValidConnection || isValidConnectionStore;
+    const { connection, isValid } = XYHandle.isValid(event, {
+      handle: {
+        nodeId,
+        id: this.handleId || null,
+        type: this.type,
+      },
+      connectionMode,
+      fromNodeId: connectionClickStartHandle.nodeId,
+      fromHandleId: connectionClickStartHandle.id || null,
+      fromType: connectionClickStartHandle.type,
+      isValidConnection: isValidConnectionHandler,
+      flowId,
+      doc,
+      lib: lib || 'vanilla',
+      nodeLookup: nodeLookup || new Map(),
+    });
+
+    if (isValid && connection) {
+      this.onConnectExtended(connection);
+    }
+
+    const connectionClone = structuredClone(connectionState) as Optional<ConnectionState, 'inProgress'>;
+    if (connectionClone) {
+      delete connectionClone.inProgress;
+      connectionClone.toPosition = connectionClone.toHandle ? connectionClone.toHandle.position : null;
+      onClickConnectEnd?.(event, connectionClone);
+    }
+
+    flow.setState?.({ connectionClickStartHandle: null });
+  };
+
+  render() {
+    const isTarget = this.type === 'target';
+    const handleId = this.handleId || null;
+    const nodeId = this.getAttribute('data-nodeid') || '';
+
+    return (
+      <div
+        data-handleid={handleId}
+        data-nodeid={nodeId}
+        data-handlepos={this.position}
+        data-id={`${this.rfId || ''}-${nodeId}-${handleId}-${this.type}`}
+        class={
+          classcat(
+            'xyflow__handle',
+            `xyflow__handle-${this.position}`,
+            'nodrag',
+            this.noPanClassName,
+            this.getAttribute('class') || '',
+            {
+              source: !isTarget,
+              target: isTarget,
+              connectable: this.isConnectable,
+              connectablestart: this.isConnectableStart,
+              connectableend: this.isConnectableEnd,
+              clickconnecting: this.clickConnecting,
+              connectingfrom: this.connectingFrom,
+              connectingto: this.connectingTo,
+              valid: this.valid,
+              connectionindicator:
+                this.isConnectable &&
+                (!this.connectionInProcess || this.isPossibleEndHandle) &&
+                (this.connectionInProcess || this.clickConnectionInProcess
+                  ? this.isConnectableEnd
+                  : this.isConnectableStart),
+            }
+          ) as string
+        }
+        onmousedown={this.onPointerDown}
+        ontouchstart={this.onPointerDown}
+        onclick={this.connectOnClick ? this.onClick : undefined}
+      >
+        {this.innerHTML || ''}
+      </div>
+    );
+  }
+}

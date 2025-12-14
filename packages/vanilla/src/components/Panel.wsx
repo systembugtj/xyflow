@@ -1,0 +1,37 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Panel 组件
+ * 完全按照 React 端设计实现
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import type { PanelPosition } from '@xyflow/system';
+import { classcat } from '../utils/web-components';
+import styles from '../styles/base.css?inline';
+
+@autoRegister({ tagName: 'xyflow-panel' })
+export default class PanelComponent extends LightComponent {
+  @state private position: PanelPosition = 'top-left';
+
+  constructor() {
+    super({
+      styles,
+    });
+  }
+
+  static get observedAttributes() {
+    return ['position', 'class', 'style'];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    if (name === 'position') {
+      this.position = (newValue as PanelPosition) || 'top-left';
+    }
+  }
+
+  render() {
+    const positionClasses = `${this.position}`.split('-');
+    const className = this.getAttribute('class') || '';
+
+    return <div class={classcat('xyflow__panel', className, ...positionClasses)}>{this.innerHTML || ''}</div>;
+  }
+}

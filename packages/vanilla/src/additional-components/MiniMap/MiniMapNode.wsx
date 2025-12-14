@@ -1,0 +1,128 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * MiniMapNode 组件
+ * 完全按照 React 端设计实现
+ * 使用 LightComponent 设计
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { classcat } from '../../utils/web-components';
+
+@autoRegister({ tagName: 'xyflow-minimap-node' })
+export default class MiniMapNode extends LightComponent {
+  @state private id = '';
+  @state private x = 0;
+  @state private y = 0;
+  @state private width = 0;
+  @state private height = 0;
+  @state private borderRadius = 0;
+  @state private className = '';
+  @state private color: string = '';
+  @state private shapeRendering = 'geometricPrecision';
+  @state private strokeColor: string = '';
+  @state private strokeWidth: number = 0;
+  @state private style: string = '';
+  @state private selected = false;
+
+  static get observedAttributes() {
+    return [
+      'id',
+      'x',
+      'y',
+      'width',
+      'height',
+      'border-radius',
+      'class',
+      'color',
+      'shape-rendering',
+      'stroke-color',
+      'stroke-width',
+      'style',
+      'selected',
+    ];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'id':
+        this.id = newValue || '';
+        break;
+      case 'x':
+        this.x = parseFloat(newValue) || 0;
+        break;
+      case 'y':
+        this.y = parseFloat(newValue) || 0;
+        break;
+      case 'width':
+        this.width = parseFloat(newValue) || 0;
+        break;
+      case 'height':
+        this.height = parseFloat(newValue) || 0;
+        break;
+      case 'border-radius':
+        this.borderRadius = parseFloat(newValue) || 0;
+        break;
+      case 'class':
+        this.className = newValue || '';
+        break;
+      case 'color':
+        this.color = newValue || undefined;
+        break;
+      case 'shape-rendering':
+        this.shapeRendering = newValue || 'geometricPrecision';
+        break;
+      case 'stroke-color':
+        this.strokeColor = newValue || undefined;
+        break;
+      case 'stroke-width':
+        this.strokeWidth = newValue ? parseFloat(newValue) : undefined;
+        break;
+      case 'style':
+        this.style = newValue || undefined;
+        break;
+      case 'selected':
+        this.selected = newValue !== 'false';
+        break;
+    }
+  }
+
+  render() {
+    let styleObj: Partial<CSSStyleDeclaration> = {};
+    if (this.style) {
+      try {
+        styleObj = JSON.parse(this.style);
+      } catch {
+        // 忽略解析错误
+      }
+    }
+    const { background, backgroundColor } = styleObj;
+    const fill = (this.color || background || backgroundColor) as string;
+
+    return (
+      <rect
+        class={classcat('xyflow__minimap-node', { selected: this.selected }, this.className)}
+        x={this.x}
+        y={this.y}
+        rx={this.borderRadius}
+        ry={this.borderRadius}
+        width={this.width}
+        height={this.height}
+        style={{
+          fill,
+          stroke: this.strokeColor,
+          strokeWidth: this.strokeWidth,
+        }}
+        shapeRendering={this.shapeRendering}
+        onclick={this.handleClick}
+      />
+    );
+  }
+
+  private handleClick = (event: MouseEvent) => {
+    this.dispatchEvent(
+      new CustomEvent('minimap-node-click', {
+        detail: { id: this.id, event },
+        bubbles: true,
+      })
+    );
+  };
+}

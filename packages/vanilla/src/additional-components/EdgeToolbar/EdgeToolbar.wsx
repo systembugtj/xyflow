@@ -1,0 +1,105 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * EdgeToolbar 组件
+ * 完全按照 React 端设计实现
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { getEdgeToolbarTransform, type Align } from '@xyflow/system';
+// EdgeLabelRenderer 通过自定义元素标签使用
+import { classcat } from '../../utils/web-components';
+import styles from '../../styles/base.css?inline';
+
+@autoRegister({ tagName: 'xyflow-edge-toolbar' })
+export default class EdgeToolbarComponent extends LightComponent {
+  @state private edgeId: string = '';
+  @state private x: number = 0;
+  @state private y: number = 0;
+  @state private isVisible: boolean = false;
+  @state private alignX: Align = 'center';
+  @state private alignY: Align = 'center';
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-edge-toolbar',
+    });
+  }
+
+  static get observedAttributes() {
+    return ['edge-id', 'x', 'y', 'is-visible', 'align-x', 'align-y', 'class', 'style'];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'edge-id':
+        this.edgeId = newValue || '';
+        break;
+      case 'x':
+        this.x = parseFloat(newValue) || 0;
+        break;
+      case 'y':
+        this.y = parseFloat(newValue) || 0;
+        break;
+      case 'is-visible':
+        this.isVisible = newValue === 'true' ? true : newValue === 'false' ? false : undefined;
+        break;
+      case 'align-x':
+        this.alignX = (newValue as Align) || 'center';
+        break;
+      case 'align-y':
+        this.alignY = (newValue as Align) || 'center';
+        break;
+    }
+  }
+
+  private getEdge() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return null;
+
+    const flowState = flow.getState?.() || {};
+    const edgeLookup = flowState?.edgeLookup || new Map();
+    return edgeLookup.get(this.edgeId);
+  }
+
+  private getZoom(): number {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return 1;
+
+    const viewport = flow.getViewport();
+    return viewport.zoom;
+  }
+
+  render() {
+    const edge = this.getEdge();
+    const isActive = typeof this.isVisible === 'boolean' ? this.isVisible : edge?.selected;
+
+    if (!isActive) {
+      return null;
+    }
+
+    const zoom = this.getZoom();
+    const zIndex = (edge?.zIndex ?? 0) + 1;
+    const transform = getEdgeToolbarTransform(this.x, this.y, zoom, this.alignX, this.alignY);
+
+    return (
+      <xyflow-edge-label-renderer>
+        <div
+          style={{
+            position: 'absolute',
+            transform,
+            zIndex,
+            pointerEvents: 'all',
+            transformOrigin: '0 0',
+            ...(this.getAttribute('style') ? JSON.parse(this.getAttribute('style') || '{}') : {}),
+          }}
+          class={classcat(['xyflow__edge-toolbar', this.getAttribute('class') || ''])}
+          data-id={edge?.id ?? ''}
+        >
+          {this.innerHTML || ''}
+        </div>
+      </xyflow-edge-label-renderer>
+    );
+  }
+}

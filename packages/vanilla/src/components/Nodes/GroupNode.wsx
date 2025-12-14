@@ -1,0 +1,14 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * GroupNode 组件
+ * 完全按照 React 端设计实现
+ * 使用 LightComponent 设计
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+
+@autoRegister({ tagName: 'xyflow-group-node' })
+export default class GroupNodeComponent extends LightComponent {
+  render() {
+    return <div></div>;
+  }
+}

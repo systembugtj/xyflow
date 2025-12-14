@@ -1,0 +1,133 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * NodeToolbar 组件
+ * 完全按照 React 端设计实现
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { Position, getNodeToolbarTransform, getInternalNodesBounds, type Align, type NodeLookup } from '@xyflow/system';
+// NodeToolbarPortal 通过自定义元素标签使用
+import { classcat } from '../../utils/web-components';
+import styles from '../../styles/base.css?inline';
+
+@autoRegister({ tagName: 'xyflow-node-toolbar' })
+export default class NodeToolbar extends LightComponent {
+  @state private nodeId: string | string[] = [];
+  @state private isVisible: boolean = false;
+  @state private position: Position = Position.Top;
+  @state private offset = 10;
+  @state private align: Align = 'center';
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-node-toolbar',
+    });
+  }
+
+  static get observedAttributes() {
+    return ['node-id', 'is-visible', 'position', 'offset', 'align', 'class', 'style'];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'node-id':
+        try {
+          this.nodeId = JSON.parse(newValue);
+        } catch {
+          this.nodeId = newValue || undefined;
+        }
+        break;
+      case 'is-visible':
+        this.isVisible = newValue === 'true' ? true : newValue === 'false' ? false : undefined;
+        break;
+      case 'position':
+        this.position = (newValue as Position) || Position.Top;
+        break;
+      case 'offset':
+        this.offset = parseFloat(newValue) || 10;
+        break;
+      case 'align':
+        this.align = (newValue as Align) || 'center';
+        break;
+    }
+  }
+
+  private getNodes(): NodeLookup {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return new Map();
+
+    const flowState = flow.getState?.() || {};
+    const nodeLookup = flowState?.nodeLookup || new Map();
+    const contextNodeId = this.getAttribute('data-nodeid');
+
+    const nodeIds = Array.isArray(this.nodeId) ? this.nodeId : [this.nodeId || contextNodeId || ''];
+    const internalNodes = nodeIds.reduce<NodeLookup>((res, id) => {
+      const node = nodeLookup.get(id);
+      if (node) {
+        res.set(node.id, node);
+      }
+      return res;
+    }, new Map());
+
+    return internalNodes;
+  }
+
+  private getTransform() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return { x: 0, y: 0, zoom: 1 };
+
+    const viewport = flow.getViewport();
+    return { x: viewport.x, y: viewport.y, zoom: viewport.zoom };
+  }
+
+  private getSelectedNodesCount(): number {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return 0;
+
+    const flowState = flow.getState?.() || {};
+    const nodes = flowState?.nodes || [];
+    return nodes.filter((node: any) => node.selected).length;
+  }
+
+  render() {
+    const nodes = this.getNodes();
+    const { x, y, zoom } = this.getTransform();
+    const selectedNodesCount = this.getSelectedNodesCount();
+
+    // 如果 isVisible 未设置，只在节点被选中且没有其他节点被选中时显示
+    const isActive =
+      typeof this.isVisible === 'boolean'
+        ? this.isVisible
+        : nodes.size === 1 && Array.from(nodes.values())[0]?.selected && selectedNodesCount === 1;
+
+    if (!isActive || !nodes.size) {
+      return null;
+    }
+
+    const nodeRect = getInternalNodesBounds(nodes);
+    const nodesArray = Array.from(nodes.values());
+    const zIndex = Math.max(...nodesArray.map((node: any) => (node.internals?.z || 0) + 1));
+
+    const wrapperStyle: Record<string, string> = {
+      position: 'absolute',
+      transform: getNodeToolbarTransform(nodeRect, { x, y, zoom }, this.position, this.offset, this.align),
+      zIndex: String(zIndex),
+      ...(this.getAttribute('style') ? JSON.parse(this.getAttribute('style') || '{}') : {}),
+    };
+
+    return (
+      <xyflow-node-toolbar-portal>
+        <div
+          style={wrapperStyle}
+          class={classcat('xyflow__node-toolbar', this.getAttribute('class') || '')}
+          data-id={nodesArray.reduce((acc: string, node: any) => `${acc}${node.id} `, '').trim()}
+        >
+          {this.innerHTML || ''}
+        </div>
+      </xyflow-node-toolbar-portal>
+    );
+  }
+}

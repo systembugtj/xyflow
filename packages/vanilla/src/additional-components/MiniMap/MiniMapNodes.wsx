@@ -1,0 +1,174 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * MiniMapNodes 组件
+ * 完全按照 React 端设计实现
+ * 使用 LightComponent 设计
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { getNodeDimensions, nodeHasDimensions } from '@xyflow/system';
+
+type GetMiniMapNodeAttribute = (node: any) => string;
+
+function getAttrFunction(func: any): GetMiniMapNodeAttribute {
+  return func instanceof Function ? func : () => func;
+}
+
+@autoRegister({ tagName: 'xyflow-minimap-nodes' })
+export default class MiniMapNodes extends LightComponent {
+  @state private nodeStrokeColor?: string | Partial<GetMiniMapNodeAttribute> = {};
+  @state private nodeColor?: string | Partial<GetMiniMapNodeAttribute> = {};
+  @state private nodeClassName: string | Partial<GetMiniMapNodeAttribute> = {};
+  @state private nodeBorderRadius = 5;
+  @state private nodeStrokeWidth: number | undefined = 2;
+
+  static get observedAttributes() {
+    return ['node-stroke-color', 'node-color', 'node-class-name', 'node-border-radius', 'node-stroke-width'];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'node-stroke-color':
+        // 存储为字符串，使用时解析
+        this.nodeStrokeColor = newValue || undefined;
+        break;
+      case 'node-color':
+        this.nodeColor = newValue || undefined;
+        break;
+      case 'node-class-name':
+        this.nodeClassName = newValue || '';
+        break;
+      case 'node-border-radius':
+        this.nodeBorderRadius = parseFloat(newValue) || 5;
+        break;
+      case 'node-stroke-width':
+        this.nodeStrokeWidth = newValue ? parseFloat(newValue) : undefined;
+        break;
+    }
+  }
+
+  /**
+   * 渲染单个节点
+   */
+  private renderNode(
+    nodeId: string,
+    nodeLookup: Map<string, any>,
+    nodeColorFunc: GetMiniMapNodeAttribute,
+    nodeStrokeColorFunc: GetMiniMapNodeAttribute,
+    nodeClassNameFunc: GetMiniMapNodeAttribute,
+    shapeRendering: string
+  ): any {
+    const node = nodeLookup.get(nodeId);
+    if (!node || node.hidden || !nodeHasDimensions(node)) {
+      return null;
+    }
+
+    const { internals } = node;
+    const userNode = internals.userNode;
+    const { x, y } = internals.positionAbsolute;
+    const { width, height } = getNodeDimensions(userNode);
+    const styleStr = userNode.style ? JSON.stringify(userNode.style) : undefined;
+
+    return (
+      <xyflow-minimap-node
+        id={nodeId}
+        x={x.toString()}
+        y={y.toString()}
+        width={width.toString()}
+        height={height.toString()}
+        style={styleStr}
+        selected={!!userNode.selected}
+        class={nodeClassNameFunc(userNode)}
+        color={nodeColorFunc(userNode)}
+        border-radius={this.nodeBorderRadius.toString()}
+        stroke-color={nodeStrokeColorFunc(userNode)}
+        stroke-width={this.nodeStrokeWidth?.toString()}
+        shape-rendering={shapeRendering}
+      />
+    );
+  }
+
+  /**
+   * 递归收集节点元素
+   */
+  private collectNodes(
+    nodeIds: string[],
+    index: number,
+    nodeLookup: Map<string, any>,
+    nodeColorFunc: GetMiniMapNodeAttribute,
+    nodeStrokeColorFunc: GetMiniMapNodeAttribute,
+    nodeClassNameFunc: GetMiniMapNodeAttribute,
+    shapeRendering: string,
+    result: any[]
+  ): void {
+    if (index >= nodeIds.length) {
+      return;
+    }
+
+    const nodeId = nodeIds[index];
+    const currentNode = this.renderNode(
+      nodeId,
+      nodeLookup,
+      nodeColorFunc,
+      nodeStrokeColorFunc,
+      nodeClassNameFunc,
+      shapeRendering
+    );
+
+    if (currentNode) {
+      result.push(currentNode);
+    }
+
+    this.collectNodes(
+      nodeIds,
+      index + 1,
+      nodeLookup,
+      nodeColorFunc,
+      nodeStrokeColorFunc,
+      nodeClassNameFunc,
+      shapeRendering,
+      result
+    );
+  }
+
+  render() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (!flow) return null;
+
+    const flowState = flow.getState?.() || {};
+    const nodeLookup = flowState?.nodeLookup || new Map();
+    const nodeIds = Array.from(nodeLookup.keys());
+
+    if (nodeIds.length === 0) {
+      return null;
+    }
+
+    const nodeColorFunc = getAttrFunction(this.nodeColor);
+    const nodeStrokeColorFunc = getAttrFunction(this.nodeStrokeColor);
+    const nodeClassNameFunc = getAttrFunction(this.nodeClassName);
+
+    const shapeRendering =
+      typeof window !== 'undefined' && (window as any).chrome ? 'crispEdges' : 'geometricPrecision';
+
+    // 收集所有节点元素
+    const nodes: any[] = [];
+    this.collectNodes(
+      nodeIds as string[],
+      0,
+      nodeLookup,
+      nodeColorFunc,
+      nodeStrokeColorFunc,
+      nodeClassNameFunc,
+      shapeRendering,
+      nodes
+    );
+
+    if (nodes.length === 0) {
+      return null;
+    }
+
+    // 在 SVG 中，需要使用 <g> 元素包装多个子元素
+    // Fragment 在 SVG 中可能不被正确支持
+    return <g>{nodes}</g>;
+  }
+}

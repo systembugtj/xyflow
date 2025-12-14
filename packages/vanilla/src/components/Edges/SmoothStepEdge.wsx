@@ -1,0 +1,81 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * SmoothStepEdge 工具函数
+ * 完全按照 React 端设计实现
+ * 计算平滑步进路径并返回 BaseEdgeComponent
+ */
+import { Position, getSmoothStepPath } from '@xyflow/system';
+
+/**
+ * 创建平滑步进 Edge 的工具函数
+ * 不导出为组件，仅作为工具函数使用
+ */
+export function createSmoothStepEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  label,
+  labelStyle,
+  labelShowBg,
+  labelBgStyle,
+  labelBgPadding,
+  labelBgBorderRadius,
+  style,
+  sourcePosition = Position.Bottom,
+  targetPosition = Position.Top,
+  markerEnd,
+  markerStart,
+  pathOptions,
+  interactionWidth,
+}: {
+  id?: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  label?: string;
+  labelStyle?: string;
+  labelShowBg?: boolean;
+  labelBgStyle?: string;
+  labelBgPadding?: [number, number];
+  labelBgBorderRadius?: number;
+  style?: string;
+  sourcePosition?: Position;
+  targetPosition?: Position;
+  markerEnd?: string;
+  markerStart?: string;
+  pathOptions?: { borderRadius?: number; offset?: number; stepPosition?: number };
+  interactionWidth?: number;
+}) {
+  const [path, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+    borderRadius: pathOptions?.borderRadius,
+    offset: pathOptions?.offset,
+    stepPosition: pathOptions?.stepPosition,
+  });
+
+  return (
+    <xyflow-base-edge
+      path={path}
+      label-x={labelX?.toString()}
+      label-y={labelY?.toString()}
+      label={label}
+      label-style={labelStyle}
+      label-show-bg={labelShowBg?.toString()}
+      label-bg-style={labelBgStyle}
+      label-bg-padding={labelBgPadding ? JSON.stringify(labelBgPadding) : undefined}
+      label-bg-border-radius={labelBgBorderRadius?.toString()}
+      style={style}
+      marker-end={markerEnd}
+      marker-start={markerStart}
+      interaction-width={interactionWidth?.toString()}
+    />
+  );
+}

@@ -1,0 +1,143 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * SimpleBezierEdge 组件
+ * 完全按照 React 端设计实现
+ */
+import { Position, getBezierEdgeCenter } from '@xyflow/system';
+
+function getControl({
+  pos,
+  x1,
+  y1,
+  x2,
+  y2,
+}: {
+  pos: Position;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}): [number, number] {
+  if (pos === Position.Left || pos === Position.Right) {
+    return [0.5 * (x1 + x2), y1];
+  }
+  return [x1, 0.5 * (y1 + y2)];
+}
+
+export function getSimpleBezierPath({
+  sourceX,
+  sourceY,
+  sourcePosition = Position.Bottom,
+  targetX,
+  targetY,
+  targetPosition = Position.Top,
+}: {
+  sourceX: number;
+  sourceY: number;
+  sourcePosition?: Position;
+  targetX: number;
+  targetY: number;
+  targetPosition?: Position;
+}): [path: string, labelX: number, labelY: number, offsetX: number, offsetY: number] {
+  const [sourceControlX, sourceControlY] = getControl({
+    pos: sourcePosition,
+    x1: sourceX,
+    y1: sourceY,
+    x2: targetX,
+    y2: targetY,
+  });
+  const [targetControlX, targetControlY] = getControl({
+    pos: targetPosition,
+    x1: targetX,
+    y1: targetY,
+    x2: sourceX,
+    y2: sourceY,
+  });
+  const [labelX, labelY, offsetX, offsetY] = getBezierEdgeCenter({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourceControlX,
+    sourceControlY,
+    targetControlX,
+    targetControlY,
+  });
+
+  return [
+    `M${sourceX},${sourceY} C${sourceControlX},${sourceControlY} ${targetControlX},${targetControlY} ${targetX},${targetY}`,
+    labelX,
+    labelY,
+    offsetX,
+    offsetY,
+  ];
+}
+
+/**
+ * 创建简单贝塞尔曲线 Edge 的工具函数
+ * 不导出为组件，仅作为工具函数使用
+ */
+export function createSimpleBezierEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  label,
+  labelStyle,
+  labelShowBg,
+  labelBgStyle,
+  labelBgPadding,
+  labelBgBorderRadius,
+  style,
+  markerEnd,
+  markerStart,
+  interactionWidth,
+}: {
+  id?: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  sourcePosition?: Position;
+  targetPosition?: Position;
+  label?: string;
+  labelStyle?: string;
+  labelShowBg?: boolean;
+  labelBgStyle?: string;
+  labelBgPadding?: [number, number];
+  labelBgBorderRadius?: number;
+  style?: string;
+  markerEnd?: string;
+  markerStart?: string;
+  interactionWidth?: number;
+}) {
+  const [path, labelX, labelY] = getSimpleBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
+  return (
+    <xyflow-base-edge
+      path={path}
+      label-x={labelX?.toString()}
+      label-y={labelY?.toString()}
+      label={label}
+      label-style={labelStyle}
+      label-show-bg={labelShowBg?.toString()}
+      label-bg-style={labelBgStyle}
+      label-bg-padding={labelBgPadding ? JSON.stringify(labelBgPadding) : undefined}
+      label-bg-border-radius={labelBgBorderRadius?.toString()}
+      style={style}
+      marker-end={markerEnd}
+      marker-start={markerStart}
+      interaction-width={interactionWidth?.toString()}
+    />
+  );
+}

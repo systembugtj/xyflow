@@ -1,0 +1,25 @@
+{
+  "display": "@xyflow/vanilla",
+  "extends": "@xyflow/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["dom", "esnext"],
+    "module": "esnext",
+    "target": "ES2022",
+    "outDir": "dist",
+    "jsx": "preserve",
+    "allowJs": false,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "@xyflow/system": ["../system/src/index.ts"]
+    },
+    "typeRoots": ["./node_modules/@types", "../node_modules/@types", "../../node_modules/@types"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "**/*.wsx", "src/wsx.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

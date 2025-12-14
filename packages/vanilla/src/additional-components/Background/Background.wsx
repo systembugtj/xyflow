@@ -1,0 +1,265 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Background 组件
+ * 完全按照 React 端设计实现
+ * 使用 DotPattern 和 LinePattern，使用 path 元素绘制
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { BackgroundVariant } from './types';
+import { classcat } from '../../utils/web-components';
+import styles from '../../styles/base.css?inline';
+
+// 默认尺寸配置
+const defaultSize = {
+  [BackgroundVariant.Dots]: 1,
+  [BackgroundVariant.Lines]: 1,
+  [BackgroundVariant.Cross]: 6,
+};
+
+@autoRegister({ tagName: 'xyflow-background' })
+export default class Background extends LightComponent {
+  @state private variant: BackgroundVariant = BackgroundVariant.Dots;
+  @state private gap: number | [number, number] = 20;
+  @state private size: number = 1;
+  @state private lineWidth = 1;
+  @state private offset: number | [number, number] = 0;
+  @state private color: string = '';
+  @state private bgColor: string = '';
+  @state private patternClassName: string = '';
+  @state private transform: [number, number, number] = [0, 0, 1]; // [x, y, zoom] 格式，与 React 端一致
+  private patternId = 'pattern-xyflow';
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-background',
+    });
+  }
+
+  static get observedAttributes() {
+    return ['id', 'variant', 'gap', 'size', 'line-width', 'offset', 'color', 'bg-color', 'class', 'pattern-class'];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'id':
+        // id 是 HTMLElement 的公共属性，不能使用 @state 覆盖
+        if (newValue) {
+          this.id = newValue;
+        } else {
+          this.removeAttribute('id');
+        }
+        const elementId = this.getAttribute('id') || '';
+        this.patternId = `pattern-xyflow${elementId ? `-${elementId}` : ''}`;
+        break;
+      case 'variant':
+        this.variant = (newValue as BackgroundVariant) || BackgroundVariant.Dots;
+        break;
+      case 'gap':
+        if (newValue) {
+          try {
+            const parsed = JSON.parse(newValue);
+            this.gap =
+              Array.isArray(parsed) && parsed.length === 2 ? [parsed[0], parsed[1]] : parseFloat(newValue) || 20;
+          } catch {
+            this.gap = parseFloat(newValue) || 20;
+          }
+        }
+        break;
+      case 'size':
+        if (newValue) {
+          const parsed = parseFloat(newValue);
+          if (!isNaN(parsed)) {
+            this.size = parsed;
+          }
+        }
+        break;
+      case 'line-width':
+        if (newValue) {
+          const parsed = parseFloat(newValue);
+          if (!isNaN(parsed)) {
+            this.lineWidth = parsed;
+          }
+        }
+        break;
+      case 'offset':
+        if (newValue) {
+          try {
+            const parsed = JSON.parse(newValue);
+            this.offset =
+              Array.isArray(parsed) && parsed.length === 2 ? [parsed[0], parsed[1]] : parseFloat(newValue) || 0;
+          } catch {
+            this.offset = parseFloat(newValue) || 0;
+          }
+        }
+        break;
+      case 'color':
+        this.color = newValue || undefined;
+        break;
+      case 'bg-color':
+        this.bgColor = newValue || undefined;
+        break;
+      case 'class':
+        // className 是 HTMLElement 的公共属性，不能使用 @state 覆盖
+        if (newValue) {
+          this.className = newValue;
+        } else {
+          this.removeAttribute('class');
+        }
+        break;
+      case 'pattern-class':
+        this.patternClassName = newValue || undefined;
+        break;
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback?.();
+    // 初始化 transform
+    this.updateTransform();
+
+    // 监听父 flow 的视口变化
+    const flowElement = this.closest('xyflow-flow');
+    if (flowElement) {
+      flowElement.addEventListener('xyflow-viewport-change', this.handleViewportChange);
+    }
+  }
+
+  disconnectedCallback() {
+    const flowElement = this.closest('xyflow-flow');
+    if (flowElement) {
+      flowElement.removeEventListener('xyflow-viewport-change', this.handleViewportChange);
+    }
+    super.disconnectedCallback?.();
+  }
+
+  // 获取父 flow 实例的视口
+  private getViewport() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    return flowElement?.flow?.getViewport() || { x: 0, y: 0, zoom: 1 };
+  }
+
+  // 更新 transform 状态
+  private updateTransform = () => {
+    const viewport = this.getViewport();
+    this.transform = [viewport.x, viewport.y, viewport.zoom];
+  };
+
+  // 处理视口变化事件
+  private handleViewportChange = () => {
+    this.updateTransform();
+  };
+
+  // 计算 pattern 尺寸
+  private getPatternSize(): number {
+    return this.size || defaultSize[this.variant];
+  }
+
+  // 计算 gap 的 [x, y] 格式
+  private getGapXY(): [number, number] {
+    return Array.isArray(this.gap) ? this.gap : [this.gap, this.gap];
+  }
+
+  // 计算 offset 的 [x, y] 格式
+  private getOffsetXY(): [number, number] {
+    return Array.isArray(this.offset) ? this.offset : [this.offset, this.offset];
+  }
+
+  // 计算缩放后的 gap
+  private getScaledGap(): [number, number] {
+    const gapXY = this.getGapXY();
+    const zoom = this.transform[2] || 1;
+    return [gapXY[0] * zoom, gapXY[1] * zoom];
+  }
+
+  // 计算缩放后的尺寸
+  private getScaledSize(): number {
+    return this.getPatternSize() * (this.transform[2] || 1);
+  }
+
+  // 计算 pattern 尺寸
+  private getPatternDimensions(): [number, number] {
+    const isCross = this.variant === BackgroundVariant.Cross;
+    if (isCross) {
+      const size = this.getScaledSize();
+      return [size, size];
+    }
+    return this.getScaledGap();
+  }
+
+  // 计算缩放后的 offset
+  private getScaledOffset(): [number, number] {
+    const offsetXY = this.getOffsetXY();
+    const zoom = this.transform[2] || 1;
+    const patternDimensions = this.getPatternDimensions();
+    return [offsetXY[0] * zoom + patternDimensions[0] / 2, offsetXY[1] * zoom + patternDimensions[1] / 2];
+  }
+
+  // 获取 pattern ID
+  private getPatternId(): string {
+    const elementId = this.getAttribute('id') || '';
+    return elementId ? `${this.patternId}-${elementId}` : this.patternId;
+  }
+
+  // 获取 SVG 样式对象
+  private getSvgStyle(): Record<string, string> {
+    return {
+      '--xy-background-color-props': this.bgColor || '',
+      '--xy-background-pattern-color-props': this.color || '',
+    };
+  }
+
+  // 渲染 dots pattern
+  private renderDotsPattern(scaledSize: number) {
+    return (
+      <circle
+        cx={scaledSize / 2}
+        cy={scaledSize / 2}
+        r={scaledSize / 2}
+        class={classcat('xyflow__background-pattern', 'dots', this.patternClassName || '')}
+      />
+    );
+  }
+
+  // 渲染 lines/cross pattern
+  private renderLinesPattern(patternDimensions: [number, number]) {
+    const pathData = `M${patternDimensions[0] / 2} 0 V${patternDimensions[1]} M0 ${patternDimensions[1] / 2} H${
+      patternDimensions[0]
+    }`;
+    return (
+      <path
+        strokeWidth={this.lineWidth}
+        d={pathData}
+        class={classcat('xyflow__background-pattern', String(this.variant), this.patternClassName || '')}
+      />
+    );
+  }
+
+  render() {
+    const patternId = this.getPatternId();
+    const scaledGap = this.getScaledGap();
+    const scaledSize = this.getScaledSize();
+    const patternDimensions = this.getPatternDimensions();
+    const scaledOffset = this.getScaledOffset();
+    const isDots = this.variant === BackgroundVariant.Dots;
+    const svgStyle = this.getSvgStyle();
+    const customClassName = this.getAttribute('class') || '';
+
+    return (
+      <svg class={classcat('xyflow__background', customClassName)} style={svgStyle} data-testid="rf__background">
+        <pattern
+          id={patternId}
+          x={this.transform[0] % scaledGap[0]}
+          y={this.transform[1] % scaledGap[1]}
+          width={scaledGap[0]}
+          height={scaledGap[1]}
+          patternUnits="userSpaceOnUse"
+          patternTransform={`translate(-${scaledOffset[0]},-${scaledOffset[1]})`}
+        >
+          {isDots ? this.renderDotsPattern(scaledSize) : this.renderLinesPattern(patternDimensions)}
+        </pattern>
+        <rect x="0" y="0" width="100%" height="100%" fill={`url(#${patternId})`} />
+      </svg>
+    );
+  }
+}

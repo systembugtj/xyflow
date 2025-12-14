@@ -1,0 +1,48 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * OutputNode 组件
+ * 完全按照 React 端设计实现
+ * 使用 LightComponent 设计
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { Position } from '@xyflow/system';
+import '../Handle.wsx';
+
+@autoRegister({ tagName: 'xyflow-output-node' })
+export default class OutputNodeComponent extends LightComponent {
+  @state private content: { label?: string } = {};
+  @state private isConnectable = true;
+  @state private targetPosition: Position = Position.Top;
+
+  static get observedAttributes() {
+    return ['content', 'is-connectable', 'target-position'];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'content':
+        try {
+          this.content = JSON.parse(newValue);
+        } catch {
+          this.content = { label: newValue };
+        }
+        break;
+      case 'is-connectable':
+        this.isConnectable = newValue !== 'false';
+        break;
+      case 'target-position':
+        this.targetPosition = (newValue as Position) || Position.Top;
+        break;
+    }
+  }
+
+  render() {
+    const label = this.content && this.content.label ? this.content.label : '';
+    return (
+      <div>
+        <xyflow-handle type="target" position={this.targetPosition} is-connectable={this.isConnectable.toString()} />
+        {label}
+      </div>
+    );
+  }
+}

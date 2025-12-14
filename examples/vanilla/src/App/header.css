@@ -1,0 +1,39 @@
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+header .logo {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  text-decoration: none;
+}
+
+header .logo:hover {
+  color: #0066cc;
+}
+
+header select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+header select:hover {
+  border-color: #999;
+}
+
+header select:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}

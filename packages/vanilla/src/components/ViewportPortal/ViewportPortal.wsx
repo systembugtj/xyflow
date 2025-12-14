@@ -1,0 +1,58 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * ViewportPortal 组件
+ * 完全按照 React 端设计实现
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+import styles from '../../styles/base.css?inline';
+
+@autoRegister({ tagName: 'xyflow-viewport-portal' })
+export default class ViewportPortal extends LightComponent {
+  private portalContainer: HTMLElement | null = null;
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-viewport-portal',
+    });
+  }
+
+  connectedCallback() {
+    super.connectedCallback?.();
+    this.findOrCreatePortalContainer();
+  }
+
+  private findOrCreatePortalContainer() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    if (flowElement) {
+      let container = flowElement.querySelector('.xyflow__viewport-portal');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'xyflow__viewport-portal';
+        flowElement.appendChild(container);
+      }
+      this.portalContainer = container;
+      this.updatePortalContent();
+    }
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    super.onAttributeChanged?.(name, _oldValue, newValue);
+    this.updatePortalContent();
+  }
+
+  private updatePortalContent() {
+    if (this.portalContainer) {
+      const content = this.innerHTML || '';
+      if (this.portalContainer.innerHTML !== content) {
+        this.portalContainer.innerHTML = content;
+      }
+    }
+  }
+
+  render() {
+    // Portal 组件将内容渲染到 portal 容器
+    this.updatePortalContent();
+    return null;
+  }
+}

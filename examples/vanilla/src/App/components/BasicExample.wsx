@@ -1,0 +1,185 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Basic 示例组件
+ * 基础的 XYFlow 使用示例
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+import '@xyflow/vanilla/dist/style.css';
+import { XYFlowVanilla } from '@xyflow/vanilla';
+import type { Node, Edge } from '@xyflow/vanilla';
+
+// 常量定义
+const NODE_CLASS_NAME = 'light';
+const BACKGROUND_VARIANT = 'dots';
+const BACKGROUND_GAP = '20';
+const CONTROLS_POSITION = 'bottom-left';
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 4;
+const RANDOM_POSITION_MULTIPLIER = 400;
+
+const initialNodes: Node[] = [
+  {
+    id: '1',
+    type: 'input',
+    data: { label: 'Node 1' },
+    position: { x: 250, y: 5 },
+    className: NODE_CLASS_NAME,
+  },
+  {
+    id: '2',
+    data: { label: 'Node 2' },
+    position: { x: 100, y: 100 },
+    className: NODE_CLASS_NAME,
+  },
+  {
+    id: '3',
+    data: { label: 'Node 3' },
+    position: { x: 400, y: 100 },
+    className: NODE_CLASS_NAME,
+  },
+  {
+    id: '4',
+    data: { label: 'Node 4' },
+    position: { x: 400, y: 200 },
+    className: NODE_CLASS_NAME,
+  },
+];
+
+const initialEdges: Edge[] = [
+  { id: 'e1-2', source: '1', target: '2', animated: true },
+  { id: 'e1-3', source: '1', target: '3' },
+];
+
+@autoRegister({ tagName: 'basic-example' })
+export class BasicExample extends LightComponent {
+  private flow: XYFlowVanilla | null = null;
+  private flowContainerRef: HTMLElement | null = null;
+  private initialized = false;
+
+  onConnected() {
+    if (!this.initialized) {
+      this.initialized = true;
+      // 使用 requestAnimationFrame 确保 DOM 已渲染
+      requestAnimationFrame(() => {
+        this.initFlow();
+      });
+    }
+  }
+
+  onDisconnected() {
+    if (this.flow) {
+      this.flow.destroy();
+      this.flow = null;
+    }
+    this.flowContainerRef = null;
+    this.initialized = false;
+  }
+
+  private initFlow() {
+    if (!this.flowContainerRef) return;
+
+    // 如果已经初始化，先清理
+    if (this.flow) {
+      this.flow.destroy();
+      this.flow = null;
+    }
+
+    // 创建 XYFlow 实例
+    this.flow = new XYFlowVanilla({
+      container: this.flowContainerRef,
+      nodes: initialNodes,
+      edges: initialEdges,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+    });
+
+    // 初始化 - fitView 返回 Promise，需要等待
+    this.flow.fitView().catch(() => {
+      // 忽略错误，fitView 可能失败（如没有节点）
+    });
+  }
+
+  private setFlowContainerRef(element: HTMLElement | null) {
+    this.flowContainerRef = element;
+    if (element && this.initialized && !this.flow) {
+      requestAnimationFrame(() => {
+        this.initFlow();
+      });
+    }
+  }
+
+  // 添加节点处理函数
+  private handleAddNode = () => {
+    if (!this.flow) return;
+    const nodeId = Date.now().toString();
+    const newNode: Node = {
+      id: nodeId,
+      data: { label: `Node ${nodeId}` },
+      position: {
+        x: Math.random() * RANDOM_POSITION_MULTIPLIER,
+        y: Math.random() * RANDOM_POSITION_MULTIPLIER,
+      },
+      className: NODE_CLASS_NAME,
+    };
+    this.flow.addNodes([newNode]);
+    this.flow.fitView().catch(() => {
+      // 忽略错误
+    });
+  };
+
+  // 适应视图处理函数
+  private handleFitView = () => {
+    this.flow?.fitView().catch(() => {
+      // 忽略错误
+    });
+  };
+
+  // 放大处理函数
+  private handleZoomIn = () => {
+    this.flow?.zoomIn().catch(() => {
+      // 忽略错误
+    });
+  };
+
+  // 缩小处理函数
+  private handleZoomOut = () => {
+    this.flow?.zoomOut().catch(() => {
+      // 忽略错误
+    });
+  };
+
+  // 重置视图处理函数
+  private handleResetView = () => {
+    this.flow?.setViewport({ x: 0, y: 0, zoom: 1 }).catch(() => {
+      // 忽略错误
+    });
+  };
+
+  render() {
+    return (
+      <div ref={(el) => this.setFlowContainerRef(el)} style="width: 100%; height: 100%; position: relative;">
+        <xyflow-background variant={BACKGROUND_VARIANT} gap={BACKGROUND_GAP}></xyflow-background>
+        <xyflow-controls position={CONTROLS_POSITION}></xyflow-controls>
+        <xyflow-minimap></xyflow-minimap>
+        {/* 控制按钮 */}
+        <div style="position: absolute; top: 10px; left: 10px; z-index: 4; display: flex; gap: 8px; flex-direction: column;">
+          <button type="button" onclick={this.handleAddNode} style="padding: 8px 16px; cursor: pointer;">
+            Add Node
+          </button>
+          <button type="button" onclick={this.handleFitView} style="padding: 8px 16px; cursor: pointer;">
+            Fit View
+          </button>
+          <button type="button" onclick={this.handleZoomIn} style="padding: 8px 16px; cursor: pointer;">
+            Zoom In
+          </button>
+          <button type="button" onclick={this.handleZoomOut} style="padding: 8px 16px; cursor: pointer;">
+            Zoom Out
+          </button>
+          <button type="button" onclick={this.handleResetView} style="padding: 8px 16px; cursor: pointer;">
+            Reset View
+          </button>
+        </div>
+      </div>
+    );
+  }
+}

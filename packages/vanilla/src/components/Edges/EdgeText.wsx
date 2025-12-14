@@ -1,0 +1,119 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * EdgeText 组件
+ * 完全按照 React 端设计实现
+ * 使用 LightComponent 设计
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import { classcat } from '../../utils/web-components';
+
+@autoRegister({ tagName: 'xyflow-edge-text' })
+export default class EdgeText extends LightComponent {
+  @state private x = 0;
+  @state private y = 0;
+  @state private label = '';
+  @state private labelStyle: string | Record<string, string> = '';
+  @state private labelShowBg = true;
+  @state private labelBgStyle: string | Record<string, string> = '';
+  @state private labelBgPadding: [number, number] = [2, 4];
+  @state private labelBgBorderRadius = 2;
+  @state private className = '';
+
+  static get observedAttributes() {
+    return [
+      'x',
+      'y',
+      'label',
+      'label-style',
+      'label-show-bg',
+      'label-bg-style',
+      'label-bg-padding',
+      'label-bg-border-radius',
+      'class',
+    ];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'x':
+        this.x = parseFloat(newValue) || 0;
+        break;
+      case 'y':
+        this.y = parseFloat(newValue) || 0;
+        break;
+      case 'label':
+        this.label = newValue || '';
+        break;
+      case 'label-style':
+        try {
+          this.labelStyle = JSON.parse(newValue);
+        } catch {
+          this.labelStyle = newValue;
+        }
+        break;
+      case 'label-show-bg':
+        this.labelShowBg = newValue !== 'false';
+        break;
+      case 'label-bg-style':
+        try {
+          this.labelBgStyle = JSON.parse(newValue);
+        } catch {
+          this.labelBgStyle = newValue;
+        }
+        break;
+      case 'label-bg-padding':
+        try {
+          this.labelBgPadding = JSON.parse(newValue);
+        } catch {
+          this.labelBgPadding = [2, 4];
+        }
+        break;
+      case 'label-bg-border-radius':
+        this.labelBgBorderRadius = parseFloat(newValue) || 2;
+        break;
+      case 'class':
+        this.className = newValue || undefined;
+        break;
+    }
+  }
+
+  render() {
+    // 计算文本边界框（简化版本，实际应该测量文本）
+    const edgeTextBbox = { x: 1, y: 0, width: this.label.length * 8, height: 16 };
+    const edgeTextClasses = classcat(['xyflow__edge-textwrapper', this.className]);
+
+    if (!this.label) {
+      return null;
+    }
+
+    return (
+      <g
+        transform={`translate(${this.x - edgeTextBbox.width / 2} ${this.y - edgeTextBbox.height / 2})`}
+        class={edgeTextClasses}
+        visibility={edgeTextBbox.width ? 'visible' : 'hidden'}
+      >
+        {this.labelShowBg && (
+          <rect
+            width={edgeTextBbox.width + 2 * this.labelBgPadding[0]}
+            x={-this.labelBgPadding[0]}
+            y={-this.labelBgPadding[1]}
+            height={edgeTextBbox.height + 2 * this.labelBgPadding[1]}
+            class="xyflow__edge-textbg"
+            style={typeof this.labelBgStyle === 'string' ? JSON.parse(this.labelBgStyle) : this.labelBgStyle}
+            rx={this.labelBgBorderRadius}
+            ry={this.labelBgBorderRadius}
+          />
+        )}
+        <text
+          class="xyflow__edge-text"
+          y={edgeTextBbox.height / 2}
+          dy="0.3em"
+          style={typeof this.labelStyle === 'string' ? JSON.parse(this.labelStyle) : this.labelStyle}
+        >
+          {this.label}
+        </text>
+        {this.innerHTML}
+      </g>
+    );
+  }
+}

@@ -1,0 +1,78 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Router 路由组件
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import routes from './routes';
+
+@autoRegister({ tagName: 'app-router' })
+export default class Router extends LightComponent {
+  @state private currentPath = 'basic';
+  @state private error: string | null = null;
+  @state private isLoading = false;
+  private currentExample: { destroy?: () => void } | null = null;
+
+  static get observedAttributes() {
+    return ['current-path'];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    if (name === 'current-path') {
+      this.currentPath = newValue || 'basic';
+      this.loadExample();
+    }
+  }
+
+  onConnected() {
+    this.loadExample();
+  }
+
+  onDisconnected() {
+    this.cleanup();
+  }
+
+  private cleanupExample() {
+    if (this.currentExample?.destroy) {
+      this.currentExample.destroy();
+      this.currentExample = null;
+    }
+  }
+
+  private async loadExample() {
+    this.cleanupExample();
+    this.error = null;
+    this.isLoading = true;
+
+    const route = routes.find((r) => r.path === this.currentPath);
+    if (!route) {
+      this.error = 'Example not found';
+      this.isLoading = false;
+      return;
+    }
+
+    try {
+      const module = await route.loader();
+      const ExampleComponent = module.default;
+      if (ExampleComponent) {
+        this.currentExample = ExampleComponent();
+      }
+    } catch (error) {
+      console.error('Failed to load example:', error);
+      this.error = `Failed to load example: ${error}`;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  render() {
+    if (this.isLoading) {
+      return <div class="router-container">Loading...</div>;
+    }
+
+    if (this.error) {
+      return <div class="router-container error">{this.error}</div>;
+    }
+
+    return <div class="router-container" id="flow-container"></div>;
+  }
+}

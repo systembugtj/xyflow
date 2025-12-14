@@ -1,0 +1,113 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Empty 示例组件
+ * 空画布，可以动态添加节点
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+import '@xyflow/vanilla';
+import { XYFlowVanilla, addEdge } from '@xyflow/vanilla';
+import type { Node, Connection } from '@xyflow/vanilla';
+
+@autoRegister({ tagName: 'empty-example' })
+export class EmptyExample extends LightComponent {
+  private flow: XYFlowVanilla | null = null;
+  private flowContainerRef: HTMLElement | null = null;
+  private initialized = false;
+
+  onConnected() {
+    if (!this.initialized) {
+      this.initialized = true;
+      requestAnimationFrame(() => {
+        this.initFlow();
+      });
+    }
+  }
+
+  onDisconnected() {
+    // 移除事件监听器
+    if (this.flowContainerRef && (this as any)._connectionHandler) {
+      this.flowContainerRef.removeEventListener('xyflow-connection-change', (this as any)._connectionHandler);
+      (this as any)._connectionHandler = null;
+    }
+
+    if (this.flow) {
+      this.flow.destroy();
+      this.flow = null;
+    }
+    this.flowContainerRef = null;
+    this.initialized = false;
+  }
+
+  private initFlow() {
+    if (!this.flowContainerRef) return;
+
+    // 如果已经初始化，先清理
+    if (this.flow) {
+      this.flow.destroy();
+      this.flow = null;
+    }
+
+    // 创建空的 XYFlow 实例
+    this.flow = new XYFlowVanilla({
+      container: this.flowContainerRef,
+      nodes: [],
+      edges: [],
+    });
+
+    // 连接处理 - 使用事件监听器
+    const handleConnectionChange = (event: Event) => {
+      if (!this.flow) return;
+      const customEvent = event as CustomEvent;
+      const connection = customEvent.detail?.connection as Connection | undefined;
+      if (connection) {
+        const edges = this.flow.getEdges();
+        this.flow.setEdges(addEdge(connection, edges));
+      }
+    };
+
+    // 监听连接变化事件
+    this.flowContainerRef.addEventListener('xyflow-connection-change', handleConnectionChange);
+
+    // 保存事件处理器引用以便清理
+    (this as any)._connectionHandler = handleConnectionChange;
+  }
+
+  private setFlowContainerRef(element: HTMLElement | null) {
+    this.flowContainerRef = element;
+    if (element && this.initialized && !this.flow) {
+      requestAnimationFrame(() => {
+        this.initFlow();
+      });
+    }
+  }
+
+  private handleAddNode() {
+    if (!this.flow) return;
+    const nodeId = (this.flow.getNodes().length + 1).toString();
+    const newNode: Node = {
+      id: nodeId,
+      data: { label: `Node: ${nodeId}` },
+      position: {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+      },
+    };
+    this.flow.addNodes([newNode]);
+  }
+
+  render() {
+    return (
+      <div ref={(el) => this.setFlowContainerRef(el)} style="width: 100%; height: 100%; position: relative;">
+        <xyflow-background variant="lines"></xyflow-background>
+        <xyflow-controls></xyflow-controls>
+        <button
+          type="button"
+          onclick={this.handleAddNode}
+          style="position: absolute; left: 10px; top: 10px; z-index: 4;"
+        >
+          add node
+        </button>
+      </div>
+    );
+  }
+}

@@ -1,0 +1,229 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * Controls 组件
+ * 完全按照 React 端设计实现
+ * 使用 SVG 图标、ControlButton、支持 orientation 和禁用状态
+ */
+import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
+import type { PanelPosition } from '@xyflow/system';
+import { classcat } from '../../utils/web-components';
+import styles from '../../styles/base.css?inline';
+// 图标组件通过自定义元素标签使用
+
+@autoRegister({ tagName: 'xyflow-controls' })
+export default class Controls extends LightComponent {
+  @state private showZoom = true;
+  @state private showFitView = true;
+  @state private showInteractive = true;
+  @state private position: PanelPosition = 'bottom-left';
+  @state private orientation: 'horizontal' | 'vertical' = 'vertical';
+  @state private isInteractive = true;
+  @state private minZoomReached = false;
+  @state private maxZoomReached = false;
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-controls',
+    });
+  }
+
+  static get observedAttributes() {
+    return [
+      'show-zoom',
+      'show-fit-view',
+      'show-interactive',
+      'position',
+      'orientation',
+      'class',
+      'style',
+      'aria-label',
+    ];
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    switch (name) {
+      case 'show-zoom':
+        this.showZoom = newValue !== 'false';
+        break;
+      case 'show-fit-view':
+        this.showFitView = newValue !== 'false';
+        break;
+      case 'show-interactive':
+        this.showInteractive = newValue !== 'false';
+        break;
+      case 'position':
+        this.position = (newValue as PanelPosition) || 'bottom-left';
+        break;
+      case 'orientation':
+        this.orientation = (newValue === 'horizontal' ? 'horizontal' : 'vertical') as 'horizontal' | 'vertical';
+        break;
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback?.();
+    // 初始化状态
+    this.updateInteractiveState();
+    this.updateZoomState();
+
+    // 监听视口变化以更新禁用状态
+    const flowElement = this.closest('xyflow-flow');
+    if (flowElement) {
+      flowElement.addEventListener('xyflow-viewport-change', this.handleViewportChange);
+    }
+  }
+
+  disconnectedCallback() {
+    const flowElement = this.closest('xyflow-flow');
+    if (flowElement) {
+      flowElement.removeEventListener('xyflow-viewport-change', this.handleViewportChange);
+    }
+    super.disconnectedCallback?.();
+  }
+
+  private updateInteractiveState = () => {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (flow) {
+      // 从 flow 实例获取交互状态
+      // 这里需要根据实际 API 调整
+      this.isInteractive = true; // 默认值，需要从 flow 获取
+    }
+  };
+
+  private updateZoomState = () => {
+    const flowElement = this.closest('xyflow-flow') as any;
+    const flow = flowElement?.flow;
+    if (flow) {
+      const viewport = flow.getViewport();
+      const minZoom = flow.getMinZoom() || 0.5;
+      const maxZoom = flow.getMaxZoom() || 2;
+      this.minZoomReached = viewport.zoom <= minZoom;
+      this.maxZoomReached = viewport.zoom >= maxZoom;
+    }
+  };
+
+  private handleViewportChange = () => {
+    this.updateZoomState();
+  };
+
+  private getFlowInstance() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    return flowElement?.flow || null;
+  }
+
+  private handleZoomIn = () => {
+    const flow = this.getFlowInstance();
+    if (flow) {
+      flow.zoomIn?.();
+      this.dispatchEvent(new CustomEvent('zoom-in', { bubbles: true }));
+    }
+  };
+
+  private handleZoomOut = () => {
+    const flow = this.getFlowInstance();
+    if (flow) {
+      flow.zoomOut?.();
+      this.dispatchEvent(new CustomEvent('zoom-out', { bubbles: true }));
+    }
+  };
+
+  private handleFitView = () => {
+    const flow = this.getFlowInstance();
+    if (flow) {
+      flow.fitView?.();
+      this.dispatchEvent(new CustomEvent('fit-view', { bubbles: true }));
+    }
+  };
+
+  private handleToggleInteractive = () => {
+    const flow = this.getFlowInstance();
+    if (flow) {
+      // 切换交互状态
+      const newInteractive = !this.isInteractive;
+      this.isInteractive = newInteractive;
+
+      // 通知 flow 实例更新状态
+      if (flow.setNodesDraggable) flow.setNodesDraggable(newInteractive);
+      if (flow.setNodesConnectable) flow.setNodesConnectable(newInteractive);
+      if (flow.setElementsSelectable) flow.setElementsSelectable(newInteractive);
+
+      this.dispatchEvent(
+        new CustomEvent('interactive-change', {
+          detail: { interactive: newInteractive },
+          bubbles: true,
+        })
+      );
+    }
+  };
+
+  render() {
+    const orientationClass = this.orientation === 'horizontal' ? 'horizontal' : 'vertical';
+    const positionClasses = this.position.split('-');
+    const ariaLabel = this.getAttribute('aria-label') || 'React Flow controls';
+
+    return (
+      <div
+        class={classcat(
+          'xyflow__panel',
+          'xyflow__controls',
+          orientationClass,
+          ...positionClasses,
+          this.getAttribute('class') || ''
+        )}
+        data-testid="rf__controls"
+        aria-label={ariaLabel}
+      >
+        {this.showZoom && (
+          <>
+            <button
+              type="button"
+              class={classcat('xyflow__controls-button', 'xyflow__controls-zoomin')}
+              onclick={this.handleZoomIn}
+              title="Zoom in"
+              aria-label="Zoom in"
+              disabled={this.maxZoomReached}
+            >
+              <xyflow-icon-plus />
+            </button>
+            <button
+              type="button"
+              class={classcat('xyflow__controls-button', 'xyflow__controls-zoomout')}
+              onclick={this.handleZoomOut}
+              title="Zoom out"
+              aria-label="Zoom out"
+              disabled={this.minZoomReached}
+            >
+              <xyflow-icon-minus />
+            </button>
+          </>
+        )}
+        {this.showFitView && (
+          <button
+            type="button"
+            class={classcat('xyflow__controls-button', 'xyflow__controls-fitview')}
+            onclick={this.handleFitView}
+            title="Fit view"
+            aria-label="Fit view"
+          >
+            <xyflow-icon-fitview />
+          </button>
+        )}
+        {this.showInteractive && (
+          <button
+            type="button"
+            class={classcat('xyflow__controls-button', 'xyflow__controls-interactive')}
+            onclick={this.handleToggleInteractive}
+            title={this.isInteractive ? 'Lock viewport' : 'Unlock viewport'}
+            aria-label={this.isInteractive ? 'Lock viewport' : 'Unlock viewport'}
+          >
+            {this.isInteractive ? <xyflow-icon-unlock /> : <xyflow-icon-lock />}
+          </button>
+        )}
+        {/* 支持子元素（自定义按钮） */}
+        {this.innerHTML || ''}
+      </div>
+    );
+  }
+}

@@ -1,0 +1,30 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * XYFlow Vanilla Examples App
+ * 使用 wsxjs-router 的路由系统
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+import '@xyflow/vanilla/dist/style.css';
+import '@wsxjs/wsx-router';
+
+import './Header.wsx';
+import './components/BasicExample.wsx';
+import './components/BackgroundsExample.wsx';
+import './components/EmptyExample.wsx';
+
+@autoRegister({ tagName: 'app-root' })
+export class App extends LightComponent {
+  render() {
+    return (
+      <div class="app-container">
+        <app-header></app-header>
+        <wsx-router>
+          <wsx-view route="/" component="basic-example"></wsx-view>
+          <wsx-view route="/basic" component="basic-example"></wsx-view>
+          <wsx-view route="/backgrounds" component="backgrounds-example"></wsx-view>
+          <wsx-view route="/empty" component="empty-example"></wsx-view>
+        </wsx-router>
+      </div>
+    );
+  }
+}

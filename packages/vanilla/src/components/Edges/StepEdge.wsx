@@ -1,0 +1,40 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * StepEdge 工具函数
+ * 完全按照 React 端设计实现
+ * 计算步进路径并返回 BaseEdgeComponent
+ */
+import { createSmoothStepEdge } from './SmoothStepEdge.wsx';
+
+/**
+ * 创建步进 Edge 的工具函数
+ * 不导出为组件，仅作为工具函数使用
+ */
+export function createStepEdge({
+  id,
+  ...props
+}: {
+  id?: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  label?: string;
+  labelStyle?: string;
+  labelShowBg?: boolean;
+  labelBgStyle?: string;
+  labelBgPadding?: [number, number];
+  labelBgBorderRadius?: number;
+  style?: string;
+  sourcePosition?: any;
+  targetPosition?: any;
+  markerEnd?: string;
+  markerStart?: string;
+  pathOptions?: { offset?: number };
+  interactionWidth?: number;
+}) {
+  return createSmoothStepEdge({
+    ...props,
+    pathOptions: { borderRadius: 0, offset: props.pathOptions?.offset },
+  });
+}

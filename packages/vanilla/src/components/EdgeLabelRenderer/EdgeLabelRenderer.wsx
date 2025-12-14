@@ -1,0 +1,62 @@
+/** @jsxImportSource @wsxjs/wsx-core */
+/**
+ * EdgeLabelRenderer 组件
+ * 完全按照 React 端设计实现
+ */
+import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
+import styles from '../../styles/base.css?inline';
+
+@autoRegister({ tagName: 'xyflow-edge-label-renderer' })
+export default class EdgeLabelRenderer extends LightComponent {
+  private portalContainer: HTMLElement | null = null;
+
+  constructor() {
+    super({
+      styles,
+      styleName: 'xyflow-edge-label-renderer',
+    });
+  }
+
+  connectedCallback() {
+    super.connectedCallback?.();
+    this.findOrCreatePortalContainer();
+  }
+
+  private findOrCreatePortalContainer() {
+    const flowElement = this.closest('xyflow-flow') as any;
+    if (flowElement) {
+      let container = flowElement.querySelector('.xyflow__edgelabel-renderer');
+      if (!container) {
+        // 使用 JSX 创建容器（通过 render 方法）
+        container = document.createElement('div');
+        container.className = 'xyflow__edgelabel-renderer';
+        flowElement.appendChild(container);
+      }
+      this.portalContainer = container;
+      this.updatePortalContent();
+    }
+  }
+
+  protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
+    super.onAttributeChanged?.(name, _oldValue, newValue);
+    this.updatePortalContent();
+  }
+
+  private updatePortalContent() {
+    if (this.portalContainer) {
+      // Portal 需要将内容渲染到其他位置，使用 innerHTML 是必要的
+      // 但我们可以通过状态管理来优化
+      const content = this.innerHTML || '';
+      if (this.portalContainer.innerHTML !== content) {
+        this.portalContainer.innerHTML = content;
+      }
+    }
+  }
+
+  render() {
+    // Portal 组件不渲染自身内容，而是将内容渲染到 portal 容器
+    // 这是 Portal 的特殊行为，需要保留 DOM 操作
+    this.updatePortalContent();
+    return null;
+  }
+}
