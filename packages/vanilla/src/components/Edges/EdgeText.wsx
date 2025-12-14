@@ -80,7 +80,7 @@ export default class EdgeText extends LightComponent {
   render() {
     // 计算文本边界框（简化版本，实际应该测量文本）
     const edgeTextBbox = { x: 1, y: 0, width: this.label.length * 8, height: 16 };
-    const edgeTextClasses = classcat(['xyflow__edge-textwrapper', this.className]);
+    const edgeTextClasses = classcat(['vanilla-flow__edge-textwrapper', this.className]);
 
     if (!this.label) {
       return null;
@@ -98,14 +98,14 @@ export default class EdgeText extends LightComponent {
             x={-this.labelBgPadding[0]}
             y={-this.labelBgPadding[1]}
             height={edgeTextBbox.height + 2 * this.labelBgPadding[1]}
-            class="xyflow__edge-textbg"
+            class="vanilla-flow__edge-textbg"
             style={typeof this.labelBgStyle === 'string' ? JSON.parse(this.labelBgStyle) : this.labelBgStyle}
             rx={this.labelBgBorderRadius}
             ry={this.labelBgBorderRadius}
           />
         )}
         <text
-          class="xyflow__edge-text"
+          class="vanilla-flow__edge-text"
           y={edgeTextBbox.height / 2}
           dy="0.3em"
           style={typeof this.labelStyle === 'string' ? JSON.parse(this.labelStyle) : this.labelStyle}

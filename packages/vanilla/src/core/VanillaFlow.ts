@@ -75,7 +75,7 @@ interface ConnectionStateInternal {
   };
 }
 
-export class XYFlowVanilla implements XYFlowInstance {
+export class VanillaFlow implements XYFlowInstance {
   private container: HTMLElement;
   private viewportElement: HTMLElement | null = null;
   private panZoom: PanZoomInstance | null = null;
@@ -139,7 +139,7 @@ export class XYFlowVanilla implements XYFlowInstance {
       domNode: null,
       nodeLookup: new Map(),
       lib: 'vanilla',
-      panBy: () => {},
+      panBy: () => Promise.resolve(true),
       cancelConnection: () => {},
       autoPanSpeed: 0.5,
       connectionDragThreshold: 1,
@@ -156,7 +156,7 @@ export class XYFlowVanilla implements XYFlowInstance {
   private init(): void {
     // 创建视口容器
     this.viewportElement = document.createElement('div');
-    this.viewportElement.className = 'xyflow__viewport';
+    this.viewportElement.className = 'vanilla-flow__viewport';
     this.viewportElement.style.width = '100%';
     this.viewportElement.style.height = '100%';
     this.viewportElement.style.position = 'relative';
@@ -268,7 +268,7 @@ export class XYFlowVanilla implements XYFlowInstance {
 
     // 创建 SVG 容器用于边
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.className = 'xyflow__edges';
+    svg.className = 'vanilla-flow__edges';
     svg.style.position = 'absolute';
     svg.style.top = '0';
     svg.style.left = '0';
@@ -297,7 +297,7 @@ export class XYFlowVanilla implements XYFlowInstance {
    */
   private createNodeElement(node: Node): HTMLElement {
     const nodeElement = document.createElement('div');
-    nodeElement.className = `xyflow__node ${node.className || ''}`;
+    nodeElement.className = `vanilla-flow__node ${node.className || ''}`;
     nodeElement.id = `xyflow-node-${node.id}`;
     nodeElement.style.position = 'absolute';
     nodeElement.style.left = `${node.position.x}px`;
@@ -310,7 +310,7 @@ export class XYFlowVanilla implements XYFlowInstance {
 
     // 创建节点内容
     const nodeContent = document.createElement('div');
-    nodeContent.className = 'xyflow__node-content';
+    nodeContent.className = 'vanilla-flow__node-content';
     nodeContent.textContent = String(node.data?.label || node.id);
     nodeElement.appendChild(nodeContent);
 
@@ -392,7 +392,7 @@ export class XYFlowVanilla implements XYFlowInstance {
     path.setAttribute('stroke', edge.selected ? '#ff0072' : '#b1b1b7');
     path.setAttribute('stroke-width', '2');
     path.setAttribute('fill', 'none');
-    path.setAttribute('class', `xyflow__edge ${edge.selected ? 'selected' : ''}`);
+    path.setAttribute('class', `vanilla-flow__edge ${edge.selected ? 'selected' : ''}`);
     path.setAttribute('data-edge-id', edge.id);
 
     if (edge.animated) {

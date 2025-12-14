@@ -1,6 +1,6 @@
 /** @jsxImportSource @wsxjs/wsx-core */
 // 导出核心类
-export { XYFlowVanilla } from './core/XYFlow';
+export { VanillaFlow } from './core/VanillaFlow';
 
 // 直接导入 WSX 组件（确保 wsx 插件处理这些文件）
 // 这些导入语句会触发 wsx 插件处理 .wsx 文件

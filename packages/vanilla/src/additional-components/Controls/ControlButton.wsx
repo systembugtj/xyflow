@@ -32,7 +32,7 @@ export default class ControlButton extends LightComponent {
     return (
       <button
         type="button"
-        class={classcat('xyflow__controls-button', this.getAttribute('class') || '')}
+        class={classcat('vanilla-flow__controls-button', this.getAttribute('class') || '')}
         disabled={this.disabled}
         onclick={(e) => {
           const onClick = this.getAttribute('onclick');

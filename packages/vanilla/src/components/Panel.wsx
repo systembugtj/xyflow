@@ -43,7 +43,7 @@ export default class PanelComponent extends LightComponent {
     const className = this.getAttribute('class') || '';
 
     return (
-      <div class={classcat('xyflow__panel', className, ...positionClasses)}>
+      <div class={classcat('vanilla-flow__panel', className, ...positionClasses)}>
         <slot />
       </div>
     );

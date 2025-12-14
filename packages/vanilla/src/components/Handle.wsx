@@ -18,7 +18,6 @@ import {
   type Optional,
 } from '@xyflow/system';
 import { classcat } from '../utils/web-components';
-import styles from '../styles/base.css?inline';
 
 @autoRegister({ tagName: 'xyflow-handle' })
 export default class Handle extends LightComponent {
@@ -44,12 +43,6 @@ export default class Handle extends LightComponent {
   @state private connectOnClick = false;
   @state private noPanClassName = '';
   @state private rfId: string | null = null;
-
-  constructor() {
-    super({
-      styles,
-    });
-  }
 
   static get observedAttributes() {
     return [
@@ -304,8 +297,8 @@ export default class Handle extends LightComponent {
         data-id={`${this.rfId || ''}-${nodeId}-${handleId}-${this.type}`}
         class={
           classcat(
-            'xyflow__handle',
-            `xyflow__handle-${this.position}`,
+            'vanilla-flow__handle',
+            `vanilla-flow__handle-${this.position}`,
             'nodrag',
             this.noPanClassName,
             this.getAttribute('class') || '',

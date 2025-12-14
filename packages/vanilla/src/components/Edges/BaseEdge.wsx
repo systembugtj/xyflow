@@ -104,7 +104,7 @@ export default class BaseEdgeComponent extends LightComponent {
         <path
           d={this.path}
           fill="none"
-          class={classcat(['xyflow__edge-path', this.getAttribute('class') || ''])}
+          class={classcat('vanilla-flow__edge-path', this.getAttribute('class') || '')}
           style={style}
           markerStart={markerStart || undefined}
           markerEnd={markerEnd || undefined}
@@ -115,7 +115,7 @@ export default class BaseEdgeComponent extends LightComponent {
             fill="none"
             strokeOpacity={0}
             strokeWidth={this.interactionWidth}
-            class="xyflow__edge-interaction"
+            class="vanilla-flow__edge-interaction"
           />
         ) : null}
         {this.label && isNumeric(this.labelX) && isNumeric(this.labelY) ? (

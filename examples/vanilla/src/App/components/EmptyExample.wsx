@@ -5,12 +5,12 @@
  */
 import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
 import '@xyflow/vanilla';
-import { XYFlowVanilla, addEdge } from '@xyflow/vanilla';
+import { VanillaFlow, addEdge } from '@xyflow/vanilla';
 import type { Node, Connection } from '@xyflow/vanilla';
 
 @autoRegister({ tagName: 'empty-example' })
 export class EmptyExample extends LightComponent {
-  private flow: XYFlowVanilla | null = null;
+  private flow: VanillaFlow | null = null;
   private flowContainerRef: HTMLElement | null = null;
   private initialized = false;
 
@@ -48,7 +48,7 @@ export class EmptyExample extends LightComponent {
     }
 
     // 创建空的 XYFlow 实例
-    this.flow = new XYFlowVanilla({
+    this.flow = new VanillaFlow({
       container: this.flowContainerRef,
       nodes: [],
       edges: [],

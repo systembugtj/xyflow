@@ -6,14 +6,14 @@
 import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
 import styles from '../../styles/base.css?inline';
 
-@autoRegister({ tagName: 'xyflow-viewport-portal' })
+@autoRegister({ tagName: 'vanilla-flow-viewport-portal' })
 export default class ViewportPortal extends LightComponent {
   private portalContainer: HTMLElement | null = null;
 
   constructor() {
     super({
       styles,
-      styleName: 'xyflow-viewport-portal',
+      styleName: 'vanilla-flow-viewport-portal',
     });
   }
 
@@ -23,12 +23,12 @@ export default class ViewportPortal extends LightComponent {
   }
 
   private findOrCreatePortalContainer() {
-    const flowElement = this.closest('xyflow-flow') as any;
+    const flowElement = this.closest('vanilla-flow') as any;
     if (flowElement) {
-      let container = flowElement.querySelector('.xyflow__viewport-portal');
+      let container = flowElement.querySelector('.vanilla-flow__viewport-portal');
       if (!container) {
         container = document.createElement('div');
-        container.className = 'xyflow__viewport-portal';
+        container.className = 'vanilla-flow__viewport-portal';
         flowElement.appendChild(container);
       }
       this.portalContainer = container;

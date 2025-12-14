@@ -27,14 +27,9 @@ export default class Background extends LightComponent {
   @state private bgColor: string = '';
   @state private patternClassName: string = '';
   @state private transform: [number, number, number] = [0, 0, 1]; // [x, y, zoom] 格式，与 React 端一致
-  private patternId = 'pattern-xyflow';
 
-  constructor() {
-    super({
-      styles,
-      styleName: 'xyflow-background',
-    });
-  }
+  private patternId = 'pattern-xyflow';
+  private elementId = '';
 
   static get observedAttributes() {
     return ['id', 'variant', 'gap', 'size', 'line-width', 'offset', 'color', 'bg-color', 'class', 'pattern-class'];
@@ -45,12 +40,12 @@ export default class Background extends LightComponent {
       case 'id':
         // id 是 HTMLElement 的公共属性，不能使用 @state 覆盖
         if (newValue) {
-          this.id = newValue;
+          this.elementId = newValue;
         } else {
           this.removeAttribute('id');
         }
-        const elementId = this.getAttribute('id') || '';
-        this.patternId = `pattern-xyflow${elementId ? `-${elementId}` : ''}`;
+
+        this.patternId = `pattern-xyflow${this.elementId ? `-${this.elementId}` : ''}`;
         break;
       case 'variant':
         this.variant = (newValue as BackgroundVariant) || BackgroundVariant.Dots;
@@ -94,10 +89,10 @@ export default class Background extends LightComponent {
         }
         break;
       case 'color':
-        this.color = newValue || undefined;
+        this.color = newValue || '';
         break;
       case 'bg-color':
-        this.bgColor = newValue || undefined;
+        this.bgColor = newValue || '';
         break;
       case 'class':
         // className 是 HTMLElement 的公共属性，不能使用 @state 覆盖
@@ -108,13 +103,12 @@ export default class Background extends LightComponent {
         }
         break;
       case 'pattern-class':
-        this.patternClassName = newValue || undefined;
+        this.patternClassName = newValue || '';
         break;
     }
   }
 
-  connectedCallback() {
-    super.connectedCallback?.();
+  onConnected() {
     // 初始化 transform
     this.updateTransform();
 
@@ -125,12 +119,11 @@ export default class Background extends LightComponent {
     }
   }
 
-  disconnectedCallback() {
+  onDisconnected() {
     const flowElement = this.closest('xyflow-flow');
     if (flowElement) {
       flowElement.removeEventListener('xyflow-viewport-change', this.handleViewportChange);
     }
-    super.disconnectedCallback?.();
   }
 
   // 获取父 flow 实例的视口
@@ -202,11 +195,11 @@ export default class Background extends LightComponent {
   }
 
   // 获取 SVG 样式对象
-  private getSvgStyle(): Record<string, string> {
-    return {
-      '--xy-background-color-props': this.bgColor || '',
-      '--xy-background-pattern-color-props': this.color || '',
-    };
+  private getSvgStyle(): string {
+    return `
+      --xy-background-color-props: ${this.bgColor};
+      --xy-background-pattern-color-props: ${this.color};
+    `;
   }
 
   // 渲染 dots pattern
@@ -216,7 +209,7 @@ export default class Background extends LightComponent {
         cx={scaledSize / 2}
         cy={scaledSize / 2}
         r={scaledSize / 2}
-        class={classcat('xyflow__background-pattern', 'dots', this.patternClassName || '')}
+        class={classcat('vanilla-flow__background-pattern', 'dots', this.patternClassName || '')}
       />
     );
   }
@@ -230,7 +223,7 @@ export default class Background extends LightComponent {
       <path
         strokeWidth={this.lineWidth}
         d={pathData}
-        class={classcat('xyflow__background-pattern', String(this.variant), this.patternClassName || '')}
+        class={classcat('vanilla-flow__background-pattern', String(this.variant), this.patternClassName || '')}
       />
     );
   }
@@ -242,11 +235,10 @@ export default class Background extends LightComponent {
     const patternDimensions = this.getPatternDimensions();
     const scaledOffset = this.getScaledOffset();
     const isDots = this.variant === BackgroundVariant.Dots;
-    const svgStyle = this.getSvgStyle();
-    const customClassName = this.getAttribute('class') || '';
+    const svgStyle = this.getSvgStyle()?.toString() ?? '';
 
     return (
-      <svg class={classcat('xyflow__background', customClassName)} style={svgStyle} data-testid="rf__background">
+      <svg class="vanilla-flow__background" style={svgStyle.toString()} data-testid="rf__background">
         <pattern
           id={patternId}
           x={this.transform[0] % scaledGap[0]}

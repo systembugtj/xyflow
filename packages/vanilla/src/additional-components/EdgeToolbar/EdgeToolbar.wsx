@@ -128,7 +128,7 @@ export default class EdgeToolbarComponent extends LightComponent {
             pointerEvents: 'all',
             transformOrigin: '0 0',
           }}
-          class={classcat('xyflow__edge-toolbar', this.getAttribute('class') || '')}
+          class={classcat('vanilla-flow__edge-toolbar', this.getAttribute('class') || '')}
           data-id={edge?.id ?? ''}
         >
           <slot />

@@ -25,11 +25,11 @@ export default class EdgeLabelRenderer extends LightComponent {
   private findOrCreatePortalContainer() {
     const flowElement = this.closest('xyflow-flow') as any;
     if (flowElement) {
-      let container = flowElement.querySelector('.xyflow__edgelabel-renderer');
+      let container = flowElement.querySelector('.vanilla-flow__edgelabel-renderer');
       if (!container) {
         // 使用 JSX 创建容器（通过 render 方法）
         container = document.createElement('div');
-        container.className = 'xyflow__edgelabel-renderer';
+        container.className = 'vanilla-flow__edgelabel-renderer';
         flowElement.appendChild(container);
       }
       this.portalContainer = container;

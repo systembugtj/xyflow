@@ -235,7 +235,7 @@ export default class NodeResizeControl extends LightComponent {
           }
         }}
         class={classcat(
-          'xyflow__resize-control',
+          'vanilla-flow__resize-control',
           'nodrag',
           ...positionClassNames,
           this.variant,

@@ -18,11 +18,11 @@ export class App extends LightComponent {
     return (
       <div class="app-container">
         <app-header></app-header>
-        <wsx-router>
-          <wsx-view route="/" component="basic-example"></wsx-view>
-          <wsx-view route="/basic" component="basic-example"></wsx-view>
-          <wsx-view route="/backgrounds" component="backgrounds-example"></wsx-view>
-          <wsx-view route="/empty" component="empty-example"></wsx-view>
+        <wsx-router class="router-container">
+          <wsx-view class="router-container-view" route="/" component="basic-example"></wsx-view>
+          <wsx-view class="router-container-view" route="/basic" component="basic-example"></wsx-view>
+          <wsx-view class="router-container-view" route="/backgrounds" component="backgrounds-example"></wsx-view>
+          <wsx-view class="router-container-view" route="/empty" component="empty-example"></wsx-view>
         </wsx-router>
       </div>
     );

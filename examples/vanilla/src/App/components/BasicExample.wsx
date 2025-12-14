@@ -4,8 +4,8 @@
  * 基础的 XYFlow 使用示例
  */
 import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
-import '@xyflow/vanilla/dist/style.css';
-import { XYFlowVanilla } from '@xyflow/vanilla';
+import styles from '@xyflow/vanilla/dist/style.css?inline';
+import { VanillaFlow } from '@xyflow/vanilla';
 import type { Node, Edge } from '@xyflow/vanilla';
 
 // 常量定义
@@ -52,9 +52,15 @@ const initialEdges: Edge[] = [
 
 @autoRegister({ tagName: 'basic-example' })
 export class BasicExample extends LightComponent {
-  private flow: XYFlowVanilla | null = null;
+  private flow: VanillaFlow | null = null;
   private flowContainerRef: HTMLElement | null = null;
   private initialized = false;
+
+  constructor() {
+    super({
+      styles,
+    });
+  }
 
   onConnected() {
     if (!this.initialized) {
@@ -85,7 +91,7 @@ export class BasicExample extends LightComponent {
     }
 
     // 创建 XYFlow 实例
-    this.flow = new XYFlowVanilla({
+    this.flow = new VanillaFlow({
       container: this.flowContainerRef,
       nodes: initialNodes,
       edges: initialEdges,
@@ -158,11 +164,15 @@ export class BasicExample extends LightComponent {
   render() {
     return (
       <div ref={(el) => this.setFlowContainerRef(el)} style="width: 100%; height: 100%; position: relative;">
-        <xyflow-background variant={BACKGROUND_VARIANT} gap={BACKGROUND_GAP}></xyflow-background>
+        <xyflow-background
+          class="vanilla-flow__background"
+          variant={BACKGROUND_VARIANT}
+          gap={BACKGROUND_GAP}
+        ></xyflow-background>
         <xyflow-controls position={CONTROLS_POSITION}></xyflow-controls>
         <xyflow-minimap></xyflow-minimap>
         {/* 控制按钮 */}
-        <div style="position: absolute; top: 10px; left: 10px; z-index: 4; display: flex; gap: 8px; flex-direction: column;">
+        <div class="vanilla-flow__panel top right">
           <button type="button" onclick={this.handleAddNode} style="padding: 8px 16px; cursor: pointer;">
             Add Node
           </button>

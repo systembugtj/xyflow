@@ -34,10 +34,10 @@ export default class NodeToolbarPortal extends LightComponent {
   private findOrCreatePortalContainer() {
     const flowElement = this.closest('xyflow-flow') as any;
     if (flowElement) {
-      let container = flowElement.querySelector('.xyflow__renderer');
+      let container = flowElement.querySelector('.vanilla-flow__renderer');
       if (!container) {
         container = document.createElement('div');
-        container.className = 'xyflow__renderer';
+        container.className = 'vanilla-flow__renderer';
         flowElement.appendChild(container);
       }
       this.portalContainer = container;

@@ -10,23 +10,29 @@ export default defineConfig({
   plugins: [
     // wsx 插件必须在最前面，确保优先处理 .wsx 文件
     wsx({
-      debug: true, // 启用调试以查看哪些文件被处理
+      debug: false, // 启用调试以查看哪些文件被处理
       jsxFactory: 'h',
       jsxFragment: 'Fragment',
       // 处理所有 .wsx 文件，包括通过 alias 导入的
     }),
   ],
   optimizeDeps: {
-    // 排除 @xyflow/vanilla，让 wsx 插件直接处理
-    // 注意：必须排除整个包，否则 Vite 会在 wsx 插件处理之前预构建
-    exclude: ['@xyflow/vanilla'],
-    // 强制包含 wsx-core 以确保正确解析
-    include: ['@wsxjs/wsx-core'],
-    // 禁用预构建，确保所有文件都通过 wsx 插件处理
-    disabled: false,
+    // 排除所有 WSX 相关包和 @xyflow/vanilla，让 wsx 插件直接处理
+    // 注意：必须排除这些包，否则 Vite 会在 wsx 插件处理之前预构建，导致异步冲突
+    exclude: ['@xyflow/vanilla', '@xyflow/system', '@wsxjs/wsx-core', '@wsxjs/wsx-router'],
+    // 在构建时禁用预构建，避免异步冲突
+    // 开发环境仍然可以使用预构建
+    disabled: process.env.NODE_ENV === 'production',
   },
   build: {
     sourcemap: process.env.NODE_ENV !== 'production', // No source maps in production
+    // 增加构建超时时间，避免异步操作超时
+    chunkSizeWarningLimit: 1000,
+    // 使用更稳定的构建模式
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
   },
   // 确保 .wsx 文件不被 esbuild 处理，只由 wsx 插件处理
   esbuild: {

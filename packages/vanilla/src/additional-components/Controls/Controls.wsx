@@ -6,7 +6,6 @@
  */
 import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
 import { classcat } from '../../utils/web-components';
-import styles from '../../styles/base.css?inline';
 
 // PanelPosition 类型定义（从 @xyflow/system 重新定义以避免路径解析问题）
 type PanelPosition =
@@ -30,12 +29,6 @@ export default class Controls extends LightComponent {
   @state private isInteractive = true;
   @state private minZoomReached = false;
   @state private maxZoomReached = false;
-
-  constructor() {
-    super({
-      styles,
-    });
-  }
 
   static get observedAttributes() {
     return ['show-zoom', 'show-fit-view', 'show-interactive', 'position', 'orientation', 'class', 'aria-label'];
@@ -164,8 +157,8 @@ export default class Controls extends LightComponent {
     return (
       <div
         class={classcat(
-          'xyflow__panel',
-          'xyflow__controls',
+          'vanilla-flow__panel',
+          'vanilla-flow__controls',
           orientationClass,
           ...positionClasses,
           this.getAttribute('class') || ''
@@ -177,7 +170,7 @@ export default class Controls extends LightComponent {
           <>
             <button
               type="button"
-              class={classcat('xyflow__controls-button', 'xyflow__controls-zoomin')}
+              class={classcat('vanilla-flow__controls-button', 'vanilla-flow__controls-zoomin')}
               onclick={this.handleZoomIn}
               title="Zoom in"
               aria-label="Zoom in"
@@ -187,7 +180,7 @@ export default class Controls extends LightComponent {
             </button>
             <button
               type="button"
-              class={classcat('xyflow__controls-button', 'xyflow__controls-zoomout')}
+              class={classcat('vanilla-flow__controls-button', 'vanilla-flow__controls-zoomout')}
               onclick={this.handleZoomOut}
               title="Zoom out"
               aria-label="Zoom out"
@@ -200,7 +193,7 @@ export default class Controls extends LightComponent {
         {this.showFitView && (
           <button
             type="button"
-            class={classcat('xyflow__controls-button', 'xyflow__controls-fitview')}
+            class={classcat('vanilla-flow__controls-button', 'vanilla-flow__controls-fitview')}
             onclick={this.handleFitView}
             title="Fit view"
             aria-label="Fit view"
@@ -211,7 +204,7 @@ export default class Controls extends LightComponent {
         {this.showInteractive && (
           <button
             type="button"
-            class={classcat('xyflow__controls-button', 'xyflow__controls-interactive')}
+            class={classcat('vanilla-flow__controls-button', 'vanilla-flow__controls-interactive')}
             onclick={this.handleToggleInteractive}
             title={this.isInteractive ? 'Lock viewport' : 'Unlock viewport'}
             aria-label={this.isInteractive ? 'Lock viewport' : 'Unlock viewport'}

@@ -99,7 +99,7 @@ export default class MiniMapNode extends LightComponent {
 
     return (
       <rect
-        class={classcat('xyflow__minimap-node', { selected: this.selected }, this.className)}
+        class={classcat('vanilla-flow__minimap-node', { selected: this.selected }, this.className)}
         x={this.x}
         y={this.y}
         rx={this.borderRadius}

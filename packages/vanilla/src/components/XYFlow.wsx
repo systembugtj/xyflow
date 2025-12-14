@@ -5,10 +5,9 @@
  * 使用 LightComponent 因为需要与外部 DOM 交互
  */
 import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
-import { XYFlowVanilla } from '../core/XYFlow';
+import { VanillaFlow } from '../core/VanillaFlow';
 import type { XYFlowOptions, XYFlowInstance } from '../types';
 import type { Node, Edge } from '../types';
-import styles from '../styles/style.css?inline';
 
 @autoRegister({ tagName: 'xyflow-flow' })
 export default class XYFlow extends LightComponent {
@@ -25,15 +24,9 @@ export default class XYFlow extends LightComponent {
   @state private elementsSelectable = true;
 
   // 非响应式状态
-  private flowInstance: XYFlowInstance | null = null;
+  private flowInstance: VanillaFlow | null = null;
+  private flow: XYFlowInstance | null = null;
   private container: HTMLElement | null = null;
-
-  constructor() {
-    super({
-      styles,
-      styleName: 'xyflow-flow',
-    });
-  }
 
   static get observedAttributes() {
     return [
@@ -101,8 +94,7 @@ export default class XYFlow extends LightComponent {
     }
   }
 
-  connectedCallback() {
-    super.connectedCallback?.();
+  onConnected() {
     if (this.container) {
       this.initFlow();
     }
@@ -133,10 +125,10 @@ export default class XYFlow extends LightComponent {
       elementsSelectable: this.elementsSelectable,
     };
 
-    this.flowInstance = new XYFlowVanilla(options);
+    this.flowInstance = new VanillaFlow(options);
 
     // 暴露实例到元素上，方便外部访问
-    (this as any).flow = this.flowInstance;
+    this.flow = this.flowInstance;
 
     // 触发就绪事件
     this.dispatchEvent(
@@ -164,7 +156,11 @@ export default class XYFlow extends LightComponent {
 
   render() {
     return (
-      <div ref={(el) => this.setContainerRef(el)} class="xyflow__container" style="width: 100%; height: 100%;"></div>
+      <div
+        ref={(el) => this.setContainerRef(el)}
+        class="vanilla-flow__container"
+        style="width: 100%; height: 100%;"
+      ></div>
     );
   }
 }

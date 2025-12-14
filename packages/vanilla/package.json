@@ -45,9 +45,9 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "concurrently \"vite build --watch\" pnpm:css-watch",
     "build": "vite build && pnpm css",
-    "css": "postcss src/styles/{base,style}.css --config ./../../tooling/postcss-config/ --dir dist",
+    "css": "LIB=vanilla postcss src/styles/{base,style}.css --config ./../../tooling/postcss-config/ --dir dist",
     "css-watch": "pnpm css --watch",
     "lint": "eslint --ext .js,.ts,.tsx,.wsx src",
     "typecheck": "tsc --noEmit"

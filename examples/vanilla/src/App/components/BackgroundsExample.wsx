@@ -29,8 +29,7 @@ export class BackgroundsExample extends LightComponent {
   private flowRefs: (HTMLElement | null)[] = [null, null, null];
   private initialized = false;
 
-  connectedCallback() {
-    super.connectedCallback?.();
+  onConnected() {
     if (!this.initialized) {
       this.initialized = true;
       requestAnimationFrame(() => {
@@ -39,12 +38,11 @@ export class BackgroundsExample extends LightComponent {
     }
   }
 
-  disconnectedCallback() {
+  onDisconnected() {
     this.flows.forEach((flow) => flow.destroy());
     this.flows = [];
     this.flowRefs = [null, null, null];
     this.initialized = false;
-    super.disconnectedCallback?.();
   }
 
   private initFlows() {
