@@ -4,10 +4,44 @@
  * 完全按照 React 端设计实现
  */
 import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
-import { getEdgeToolbarTransform, type Align } from '@xyflow/system';
 // EdgeLabelRenderer 通过自定义元素标签使用
 import { classcat } from '../../utils/web-components';
 import styles from '../../styles/base.css?inline';
+
+// Align 类型定义（从 @xyflow/system 重新定义以避免路径解析问题）
+type Align = 'center' | 'start' | 'end';
+
+// EdgeToolbar 对齐映射
+const alignXToPercent: Record<'left' | 'center' | 'right', number> = {
+  left: 0,
+  center: 50,
+  right: 100,
+};
+
+const alignYToPercent: Record<'top' | 'center' | 'bottom', number> = {
+  top: 0,
+  center: 50,
+  bottom: 100,
+};
+
+// getEdgeToolbarTransform 函数（从 @xyflow/system 复制以避免路径解析问题）
+function getEdgeToolbarTransform(
+  x: number,
+  y: number,
+  zoom: number,
+  alignX: 'left' | 'center' | 'right' | 'start' | 'end' = 'center',
+  alignY: 'top' | 'center' | 'bottom' | 'start' | 'end' = 'center'
+): string {
+  // 将 'start' 和 'end' 映射到 'left'/'right' 或 'top'/'bottom'
+  const normalizedAlignX: 'left' | 'center' | 'right' =
+    alignX === 'start' ? 'left' : alignX === 'end' ? 'right' : (alignX as 'left' | 'center' | 'right');
+  const normalizedAlignY: 'top' | 'center' | 'bottom' =
+    alignY === 'start' ? 'top' : alignY === 'end' ? 'bottom' : (alignY as 'top' | 'center' | 'bottom');
+
+  return `translate(${x}px, ${y}px) scale(${1 / zoom}) translate(${-(alignXToPercent[normalizedAlignX] ?? 50)}%, ${-(
+    alignYToPercent[normalizedAlignY] ?? 50
+  )}%)`;
+}
 
 @autoRegister({ tagName: 'xyflow-edge-toolbar' })
 export default class EdgeToolbarComponent extends LightComponent {
@@ -41,7 +75,7 @@ export default class EdgeToolbarComponent extends LightComponent {
         this.y = parseFloat(newValue) || 0;
         break;
       case 'is-visible':
-        this.isVisible = newValue === 'true' ? true : newValue === 'false' ? false : undefined;
+        this.isVisible = newValue === 'true' ? true : newValue === 'false' ? false : false;
         break;
       case 'align-x':
         this.alignX = (newValue as Align) || 'center';
@@ -76,7 +110,8 @@ export default class EdgeToolbarComponent extends LightComponent {
     const isActive = typeof this.isVisible === 'boolean' ? this.isVisible : edge?.selected;
 
     if (!isActive) {
-      return null;
+      // 返回空 div 而不是 null，以满足 LightComponent 的返回类型要求
+      return <div style="display: none;"></div>;
     }
 
     const zoom = this.getZoom();
@@ -92,12 +127,11 @@ export default class EdgeToolbarComponent extends LightComponent {
             zIndex,
             pointerEvents: 'all',
             transformOrigin: '0 0',
-            ...(this.getAttribute('style') ? JSON.parse(this.getAttribute('style') || '{}') : {}),
           }}
-          class={classcat(['xyflow__edge-toolbar', this.getAttribute('class') || ''])}
+          class={classcat('xyflow__edge-toolbar', this.getAttribute('class') || '')}
           data-id={edge?.id ?? ''}
         >
-          {this.innerHTML || ''}
+          <slot />
         </div>
       </xyflow-edge-label-renderer>
     );

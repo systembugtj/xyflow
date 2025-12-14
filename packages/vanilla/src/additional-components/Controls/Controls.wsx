@@ -5,9 +5,19 @@
  * 使用 SVG 图标、ControlButton、支持 orientation 和禁用状态
  */
 import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
-import type { PanelPosition } from '@xyflow/system';
 import { classcat } from '../../utils/web-components';
 import styles from '../../styles/base.css?inline';
+
+// PanelPosition 类型定义（从 @xyflow/system 重新定义以避免路径解析问题）
+type PanelPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
+  | 'center-left'
+  | 'center-right';
 // 图标组件通过自定义元素标签使用
 
 @autoRegister({ tagName: 'xyflow-controls' })
@@ -24,21 +34,11 @@ export default class Controls extends LightComponent {
   constructor() {
     super({
       styles,
-      styleName: 'xyflow-controls',
     });
   }
 
   static get observedAttributes() {
-    return [
-      'show-zoom',
-      'show-fit-view',
-      'show-interactive',
-      'position',
-      'orientation',
-      'class',
-      'style',
-      'aria-label',
-    ];
+    return ['show-zoom', 'show-fit-view', 'show-interactive', 'position', 'orientation', 'class', 'aria-label'];
   }
 
   protected onAttributeChanged(name: string, _oldValue: string, newValue: string) {
@@ -61,8 +61,7 @@ export default class Controls extends LightComponent {
     }
   }
 
-  connectedCallback() {
-    super.connectedCallback?.();
+  onConnected() {
     // 初始化状态
     this.updateInteractiveState();
     this.updateZoomState();
@@ -74,12 +73,11 @@ export default class Controls extends LightComponent {
     }
   }
 
-  disconnectedCallback() {
+  onDisconnected() {
     const flowElement = this.closest('xyflow-flow');
     if (flowElement) {
       flowElement.removeEventListener('xyflow-viewport-change', this.handleViewportChange);
     }
-    super.disconnectedCallback?.();
   }
 
   private updateInteractiveState = () => {
@@ -221,8 +219,7 @@ export default class Controls extends LightComponent {
             {this.isInteractive ? <xyflow-icon-unlock /> : <xyflow-icon-lock />}
           </button>
         )}
-        {/* 支持子元素（自定义按钮） */}
-        {this.innerHTML || ''}
+        <slot />
       </div>
     );
   }

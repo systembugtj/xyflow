@@ -125,7 +125,7 @@ export default class NodeToolbar extends LightComponent {
           class={classcat('xyflow__node-toolbar', this.getAttribute('class') || '')}
           data-id={nodesArray.reduce((acc: string, node: any) => `${acc}${node.id} `, '').trim()}
         >
-          {this.innerHTML || ''}
+          <slot />
         </div>
       </xyflow-node-toolbar-portal>
     );

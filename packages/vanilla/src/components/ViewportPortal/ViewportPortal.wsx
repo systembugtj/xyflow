@@ -53,6 +53,10 @@ export default class ViewportPortal extends LightComponent {
   render() {
     // Portal 组件将内容渲染到 portal 容器
     this.updatePortalContent();
-    return null;
+    return (
+      <div style="display: none;">
+        <slot />
+      </div>
+    );
   }
 }

@@ -57,6 +57,10 @@ export default class EdgeLabelRenderer extends LightComponent {
     // Portal 组件不渲染自身内容，而是将内容渲染到 portal 容器
     // 这是 Portal 的特殊行为，需要保留 DOM 操作
     this.updatePortalContent();
-    return null;
+    return (
+      <div style="display: none;">
+        <slot />
+      </div>
+    );
   }
 }

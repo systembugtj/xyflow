@@ -332,7 +332,7 @@ export default class Handle extends LightComponent {
         ontouchstart={this.onPointerDown}
         onclick={this.connectOnClick ? this.onClick : undefined}
       >
-        {this.innerHTML || ''}
+        <slot />
       </div>
     );
   }

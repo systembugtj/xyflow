@@ -3,6 +3,7 @@
  * NodeToolbarPortal 组件
  * 完全按照 React 端设计实现
  * 使用 LightComponent 设计
+ * Portal 组件将内容渲染到 flow 的 renderer 容器中
  */
 import { LightComponent, autoRegister } from '@wsxjs/wsx-core';
 import styles from '../../styles/base.css?inline';
@@ -14,7 +15,6 @@ export default class NodeToolbarPortal extends LightComponent {
   constructor() {
     super({
       styles,
-      styleName: 'xyflow-node-toolbar-portal',
     });
   }
 
@@ -22,9 +22,13 @@ export default class NodeToolbarPortal extends LightComponent {
     return ['children'];
   }
 
-  connectedCallback() {
-    super.connectedCallback?.();
+  onConnected() {
     this.findOrCreatePortalContainer();
+  }
+
+  onDisconnected() {
+    // 清理 portal 容器引用
+    this.portalContainer = null;
   }
 
   private findOrCreatePortalContainer() {
@@ -48,6 +52,8 @@ export default class NodeToolbarPortal extends LightComponent {
 
   private updatePortalContent() {
     if (this.portalContainer) {
+      // Portal 需要将内容渲染到其他位置，使用 innerHTML 是必要的
+      // 因为内容需要通过 slot 传递，但 Portal 需要将其渲染到不同的 DOM 位置
       const content = this.innerHTML || '';
       if (this.portalContainer.innerHTML !== content) {
         this.portalContainer.innerHTML = content;
@@ -57,7 +63,13 @@ export default class NodeToolbarPortal extends LightComponent {
 
   render() {
     // Portal 组件将内容渲染到 portal 容器
+    // 需要在 render 时更新内容，因为内容可能通过 slot 动态变化
     this.updatePortalContent();
-    return null;
+    // 返回隐藏的容器元素以满足 LightComponent 的返回类型要求
+    return (
+      <div style="display: none;">
+        <slot />
+      </div>
+    );
   }
 }

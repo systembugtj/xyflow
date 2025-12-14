@@ -112,7 +112,7 @@ export default class EdgeText extends LightComponent {
         >
           {this.label}
         </text>
-        {this.innerHTML}
+        <slot />
       </g>
     );
   }

@@ -4,9 +4,19 @@
  * 完全按照 React 端设计实现
  */
 import { LightComponent, autoRegister, state } from '@wsxjs/wsx-core';
-import type { PanelPosition } from '@xyflow/system';
 import { classcat } from '../utils/web-components';
 import styles from '../styles/base.css?inline';
+
+// PanelPosition 类型定义（从 @xyflow/system 重新定义以避免路径解析问题）
+type PanelPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
+  | 'center-left'
+  | 'center-right';
 
 @autoRegister({ tagName: 'xyflow-panel' })
 export default class PanelComponent extends LightComponent {
@@ -32,6 +42,10 @@ export default class PanelComponent extends LightComponent {
     const positionClasses = `${this.position}`.split('-');
     const className = this.getAttribute('class') || '';
 
-    return <div class={classcat('xyflow__panel', className, ...positionClasses)}>{this.innerHTML || ''}</div>;
+    return (
+      <div class={classcat('xyflow__panel', className, ...positionClasses)}>
+        <slot />
+      </div>
+    );
   }
 }
